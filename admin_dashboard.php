@@ -18,12 +18,23 @@ if (isset($_POST['tambah_siswa'])) {
     $kelas       = mysqli_real_escape_string($koneksi, trim($_POST['kelas']));
     $pass_hash   = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    $sql = "INSERT INTO siswa (nomor_kartu, nama, kelas, password) VALUES ('$nomor_kartu', '$nama', '$kelas', '$pass_hash')";
-    if (mysqli_query($koneksi, $sql)) {
-        $msg = "Siswa berhasil terdaftar!";
-    } else {
-        $msg = "Gagal! Nomor Kartu sudah terdaftar di sistem.";
+    // 1. Cek dulu apakah nomor kartu sudah terdaftar
+    $cek_kartu = mysqli_query($koneksi, "SELECT id FROM siswa WHERE nomor_kartu='$nomor_kartu'");
+    
+    if (mysqli_num_rows($cek_kartu) > 0) {
+        // Jika nomor kartu sudah ada di database
+        $msg = "Gagal! Nomor Kartu ($nomor_kartu) sudah terdaftar untuk siswa lain.";
         $msg_type = 'error';
+    } else {
+        // Jika belum ada, masukkan data siswa baru
+        $sql = "INSERT INTO siswa (nomor_kartu, nama, kelas, password) VALUES ('$nomor_kartu', '$nama', '$kelas', '$pass_hash')";
+        if (mysqli_query($koneksi, $sql)) {
+            $msg = "Siswa berhasil terdaftar!";
+            $msg_type = 'success';
+        } else {
+            $msg = "Terjadi kesalahan saat menyimpan data.";
+            $msg_type = 'error';
+        }
     }
 }
 
