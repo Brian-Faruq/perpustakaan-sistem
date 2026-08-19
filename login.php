@@ -21,8 +21,8 @@ if (isset($_POST['login'])) {
         }
     }
 
-    // 2. Cek Akun Siswa (via Tap Kartu / Nomor Kartu)
-    $query_siswa = mysqli_query($koneksi, "SELECT * FROM siswa WHERE nomor_kartu='$user_input'");
+    // 2. Cek Akun Siswa (Bisa via Nama ATAU Nomor Kartu)
+    $query_siswa = mysqli_query($koneksi, "SELECT * FROM siswa WHERE nomor_kartu='$user_input' OR nama='$user_input'");
     if (mysqli_num_rows($query_siswa) > 0) {
         $data_siswa = mysqli_fetch_assoc($query_siswa);
         if (password_verify($password, $data_siswa['password'])) {
