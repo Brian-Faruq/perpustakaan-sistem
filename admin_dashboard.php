@@ -43,8 +43,17 @@ if (isset($_POST['tambah_buku'])) {
     $judul    = mysqli_real_escape_string($koneksi, trim($_POST['judul']));
     $penulis  = mysqli_real_escape_string($koneksi, trim($_POST['penulis']));
     $sinopsis = mysqli_real_escape_string($koneksi, trim($_POST['sinopsis']));
+    
+    // Default cover jika tidak upload gambar
+    $nama_cover = 'default_cover.jpg';
 
-    $sql = "INSERT INTO buku (judul, penulis, sinopsis) VALUES ('$judul', '$penulis', '$sinopsis')";
+    if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
+        $ext = pathinfo($_FILES['cover']['name'], PATHINFO_EXTENSION);
+        $nama_cover = time() . '_' . uniqid() . '.' . $ext;
+        move_uploaded_file($_FILES['cover']['tmp_name'], 'uploads/' . $nama_cover);
+    }
+
+    $sql = "INSERT INTO buku (judul, penulis, sinopsis, cover) VALUES ('$judul', '$penulis', '$sinopsis', '$nama_cover')";
     if (mysqli_query($koneksi, $sql)) {
         $msg = "Buku baru berhasil ditambahkan!";
     }
@@ -155,7 +164,7 @@ if (isset($_GET['kembali_id'])) {
                     <span class="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">2</span>
                     Tambah Koleksi Buku
                 </h3>
-                <form action="" method="POST" class="space-y-3">
+                <form action="" method="POST" enctype="multipart/form-data" class="space-y-3">
                     <div>
                         <label class="text-xs font-semibold text-slate-600">Judul Buku:</label>
                         <input type="text" name="judul" required class="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -167,6 +176,10 @@ if (isset($_GET['kembali_id'])) {
                     <div>
                         <label class="text-xs font-semibold text-slate-600">Sinopsis Singkat:</label>
                         <textarea name="sinopsis" rows="3" required class="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Cover Buku (JPG/PNG):</label>
+                        <input type="file" name="cover" accept="image/*" class="w-full p-1.5 border rounded-lg text-sm bg-slate-50 focus:outline-none">
                     </div>
                     <button type="submit" name="tambah_buku" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-bold transition">Tambah Buku</button>
                 </form>

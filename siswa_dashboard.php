@@ -40,8 +40,8 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, trim($_GE
             </form>
         </div>
 
-        <!-- KATALOG GRID -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- KATALOG GRID (Gambar 2) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <?php
             $query_str = "SELECT * FROM buku";
             if (!empty($search)) {
@@ -53,37 +53,56 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, trim($_GE
 
             if (mysqli_num_rows($query_buku) > 0):
                 while ($b = mysqli_fetch_assoc($query_buku)):
+                    $gambar_cover = !empty($b['cover']) && file_exists('uploads/' . $b['cover']) ? 'uploads/' . $b['cover'] : 'https://via.placeholder.com/300x400?text=No+Cover';
             ?>
-                <div class="bg-white p-5 rounded-2xl shadow hover:shadow-lg transition flex flex-col justify-between border border-slate-200">
+                <div class="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden flex flex-col justify-between border border-slate-200">
                     <div>
-                        <div class="flex justify-between items-start mb-2">
-                            <h3 class="font-bold text-lg text-slate-800 leading-snug"><?= $b['judul']; ?></h3>
-                            <?php if ($b['status'] == 'tersedia'): ?>
-                                <span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">Tersedia</span>
-                            <?php else: ?>
-                                <span class="bg-red-100 text-red-800 text-xs font-bold px-2.5 py-1 rounded-full">Dipinjam</span>
-                            <?php endif; ?>
+                        <!-- Cover Buku di Paling Atas Card -->
+                        <div class="relative h-52 bg-slate-100 overflow-hidden">
+                            <img src="<?= $gambar_cover; ?>" alt="<?= $b['judul']; ?>" class="w-full h-full object-cover">
+                            <div class="absolute top-3 right-3">
+                                <?php if ($b['status'] == 'tersedia'): ?>
+                                    <span class="bg-emerald-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">Tersedia</span>
+                                <?php else: ?>
+                                    <span class="bg-red-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">Dipinjam</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                        <p class="text-xs text-slate-500 mb-4">Penulis: <span class="font-semibold text-slate-700"><?= $b['penulis']; ?></span></p>
+
+                        <div class="p-4">
+                            <h3 class="font-bold text-lg text-slate-800 leading-snug line-clamp-1"><?= $b['judul']; ?></h3>
+                            <p class="text-xs text-slate-500 mt-1">Penulis: <span class="font-semibold text-slate-700"><?= $b['penulis']; ?></span></p>
+                        </div>
                     </div>
 
-                    <button onclick="openModal('modal-<?= $b['id']; ?>')" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-sm py-2 rounded-xl font-medium transition">
-                        Lihat Sinopsis
-                    </button>
+                    <div class="p-4 pt-0">
+                        <!-- Tombol Diganti Jadi "Lihat Detail" -->
+                        <button onclick="openModal('modal-<?= $b['id']; ?>')" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-sm py-2.5 rounded-xl font-medium transition">
+                            Lihat Detail
+                        </button>
+                    </div>
                 </div>
 
-                <!-- MODAL POP-UP SINOPSIS -->
+                <!-- MODAL OVERLAY DENGEN COVER SIDE-BY-SIDE (Gambar 3) -->
                 <div id="modal-<?= $b['id']; ?>" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
-                    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
-                        <div class="flex justify-between items-center border-b pb-3">
-                            <h3 class="font-bold text-xl text-slate-800"><?= $b['judul']; ?></h3>
-                            <button onclick="closeModal('modal-<?= $b['id']; ?>')" class="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+                    <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
+                        <button onclick="closeModal('modal-<?= $b['id']; ?>')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+
+                        <div class="flex flex-col sm:flex-row gap-4 items-start pt-2">
+                            <!-- Cover Buku di Dalam Overlay -->
+                            <img src="<?= $gambar_cover; ?>" alt="<?= $b['judul']; ?>" class="w-28 h-40 object-cover rounded-xl shadow-md border flex-shrink-0 self-center sm:self-start">
+                            
+                            <div class="space-y-2 flex-1">
+                                <h3 class="font-bold text-xl text-slate-800 leading-tight"><?= $b['judul']; ?></h3>
+                                <p class="text-xs text-slate-500">Penulis: <span class="font-semibold text-slate-700"><?= $b['penulis']; ?></span></p>
+                                
+                                <div>
+                                    <h4 class="font-semibold text-xs text-slate-400 uppercase tracking-wider mb-1">Sinopsis Buku</h4>
+                                    <p class="text-xs text-slate-600 leading-relaxed max-h-36 overflow-y-auto pr-1"><?= nl2br($b['sinopsis']); ?></p>
+                                </div>
+                            </div>
                         </div>
-                        <div>
-                            <p class="text-xs text-slate-500 mb-3">Penulis: <span class="font-semibold text-slate-700"><?= $b['penulis']; ?></span></p>
-                            <h4 class="font-semibold text-sm text-slate-800 mb-1">Sinopsis Buku:</h4>
-                            <p class="text-sm text-slate-600 leading-relaxed max-h-60 overflow-y-auto"><?= nl2br($b['sinopsis']); ?></p>
-                        </div>
+
                         <div class="text-right border-t pt-3">
                             <button onclick="closeModal('modal-<?= $b['id']; ?>')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm px-4 py-2 rounded-xl font-medium">
                                 Tutup
@@ -93,14 +112,9 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, trim($_GE
                 </div>
             <?php 
                 endwhile;
-            else:
+            endif; 
             ?>
-                <div class="col-span-3 text-center py-12 text-slate-500">
-                    Buku yang kamu cari tidak ditemukan.
-                </div>
-            <?php endif; ?>
         </div>
-    </div>
 
     <script>
         function openModal(id) {
