@@ -336,6 +336,57 @@ if (isset($_POST['kembalikan_buku'])) {
             </div>
         </div>
 
+        <!-- TABEL DAFTAR BUKU KOLEKSI -->
+        <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Buku Koleksi</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
+                        <tr>
+                            <th class="p-3 rounded-l-lg">Judul Buku</th>
+                            <th class="p-3">Penulis</th>
+                            <th class="p-3 text-center rounded-r-lg">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <?php
+                        // Query mengambil seluruh data buku
+                        $q_buku_all = mysqli_query($koneksi, "SELECT judul, penulis, status FROM buku ORDER BY judul ASC");
+
+                        if (mysqli_num_rows($q_buku_all) > 0):
+                            while ($b = mysqli_fetch_assoc($q_buku_all)):
+                        ?>
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="p-3 font-medium text-slate-800"><?= $b['judul']; ?></td>
+                                <td class="p-3 text-slate-600"><?= $b['penulis']; ?></td>
+                                <td class="p-3 text-center">
+                                    <?php if ($b['status'] === 'tersedia'): ?>
+                                        <span class="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-semibold">
+                                            Tersedia
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-semibold">
+                                            Dipinjam
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                            </tr>
+                        <?php 
+                            endwhile;
+                        else: 
+                        ?>
+                            <tr>
+                                <td colspan="3" class="p-6 text-center text-slate-400 text-sm">
+                                    Belum ada buku yang terdaftar di sistem.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
 </body>
