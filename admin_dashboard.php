@@ -100,6 +100,27 @@ if (isset($_GET['kembali_id'])) {
     header("Location: admin_dashboard.php");
     exit;
 }
+
+// Aksi 5: Pengembalian Buku via Tombol
+if (isset($_POST['kembalikan_buku'])) {
+    $id_pinjam = intval($_POST['id_peminjaman']);
+
+    // Ambil buku_id terlebih dahulu
+    $q_get = mysqli_query($koneksi, "SELECT buku_id FROM peminjaman WHERE id = $id_pinjam");
+    if ($data = mysqli_fetch_assoc($q_get)) {
+        $buku_id = $data['buku_id'];
+
+        // Update status peminjaman menjadi selesai & tanggal kembali
+        $tgl_sekarang = date('Y-m-d');
+        mysqli_query($koneksi, "UPDATE peminjaman SET status_transaksi = 'selesai', tanggal_kembali = '$tgl_sekarang' WHERE id = $id_pinjam");
+
+        // Kembalikan status buku menjadi tersedia
+        mysqli_query($koneksi, "UPDATE buku SET status = 'tersedia' WHERE id = $buku_id");
+
+        $msg = "Buku berhasil dikembalikan!";
+        $msg_type = 'success';
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -215,68 +236,58 @@ if (isset($_GET['kembali_id'])) {
         </div>
 
         <!-- TABEL DATA PEMINJAMAN AKTIF & HITUNG DENDA -->
-        <div class="bg-white p-6 rounded-xl shadow border border-slate-200">
-            <h3 class="font-bold text-lg mb-4 text-slate-800">Daftar Peminjaman Aktif & Estimasi Denda</h3>
+        <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Peminjaman Aktif</h2>
+            
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100 border-b text-slate-700">
-                            <th class="p-3">Nama Siswa</th>
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
+                        <tr>
+                            <th class="p-3 rounded-l-lg">Nama Siswa</th>
                             <th class="p-3">Kelas</th>
                             <th class="p-3">Judul Buku</th>
                             <th class="p-3">Tanggal Pinjam</th>
-                            <th class="p-3">Lama Pinjam</th>
-                            <th class="p-3">Estimasi Denda (>7 hari)</th>
-                            <th class="p-3">Aksi</th>
+                            <th class="p-3 text-center rounded-r-lg">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        $query_pem = mysqli_query($koneksi, "
-                            SELECT peminjaman.id AS peminjaman_id, siswa.nama, siswa.kelas, buku.judul, peminjaman.tanggal_pinjam, buku.id AS buku_id
-                            FROM peminjaman
-                            JOIN siswa ON peminjaman.siswa_id = siswa.id
-                            JOIN buku ON peminjaman.buku_id = buku.id
-                            WHERE peminjaman.status_transaksi = 'berjalan'
-                            ORDER BY peminjaman.tanggal_pinjam ASC
+                        // Query mengambil peminjaman yang statusnya masih dipinjam / aktif
+                        $q_peminjaman = mysqli_query($koneksi, "
+                            SELECT p.id AS id_pinjam, s.nama, s.kelas, b.judul, p.tanggal_pinjam 
+                            FROM peminjaman p
+                            JOIN siswa s ON p.siswa_id = s.id
+                            JOIN buku b ON p.buku_id = b.id
+                            WHERE p.status_transaksi = 'berjalan'
+                            ORDER BY p.tanggal_pinjam DESC
                         ");
 
-                        if (mysqli_num_rows($query_pem) > 0):
-                            while ($p = mysqli_fetch_assoc($query_pem)):
-                                // Logika Hitung Hari & Denda (Batas 7 Hari, Rp 1.000/hari)
-                                $tgl_pinjam = new DateTime($p['tanggal_pinjam']);
-                                $tgl_sekarang = new DateTime();
-                                $selisih = $tgl_sekarang->diff($tgl_pinjam)->days;
-
-                                $denda = 0;
-                                if ($selisih > 7) {
-                                    $hari_terlambat = $selisih - 7;
-                                    $denda = $hari_terlambat * 1000;
-                                }
+                        if (mysqli_num_rows($q_peminjaman) > 0):
+                            while ($p = mysqli_fetch_assoc($q_peminjaman)):
                         ?>
                             <tr class="hover:bg-slate-50 transition">
-                                <td class="p-3 font-semibold text-slate-800"><?= $p['nama']; ?></td>
+                                <td class="p-3 font-medium text-slate-800"><?= $p['nama']; ?></td>
                                 <td class="p-3 text-slate-600"><?= $p['kelas']; ?></td>
-                                <td class="p-3 text-slate-600"><?= $p['judul']; ?></td>
-                                <td class="p-3 text-slate-600"><?= date('d M Y', strtotime($p['tanggal_pinjam'])); ?></td>
-                                <td class="p-3 text-slate-600"><?= $selisih; ?> Hari</td>
-                                <td class="p-3 font-bold <?= $denda > 0 ? 'text-red-600' : 'text-emerald-600'; ?>">
-                                    <?= $denda > 0 ? 'Rp ' . number_format($denda, 0, ',', '.') : 'Tidak Ada'; ?>
-                                </td>
-                                <td class="p-3">
-                                    <a href="admin_dashboard.php?kembali_id=<?= $p['peminjaman_id']; ?>&buku_id=<?= $p['buku_id']; ?>" 
-                                       onclick="return confirm('Kembalikan buku ini dan selesaikan transaksi?')"
-                                       class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
-                                       Kembalikan Buku
-                                    </a>
+                                <td class="p-3 text-slate-700 font-medium"><?= $p['judul']; ?></td>
+                                <td class="p-3 text-slate-600"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
+                                <td class="p-3 text-center">
+                                    <!-- Tombol untuk mengembalikan buku -->
+                                    <form action="" method="POST" onsubmit="return confirm('Yakin buku ini sudah dikembalikan?');">
+                                        <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
+                                        <button type="submit" name="kembalikan_buku" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                                            Kembalikan
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php 
                             endwhile;
-                        else:
+                        else: 
                         ?>
                             <tr>
-                                <td colspan="7" class="p-4 text-center text-slate-400">Tidak ada peminjaman aktif saat ini.</td>
+                                <td colspan="5" class="p-6 text-center text-slate-400 text-sm">
+                                    Tidak ada peminjaman aktif saat ini.
+                                </td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
