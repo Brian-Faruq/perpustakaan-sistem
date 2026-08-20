@@ -295,6 +295,47 @@ if (isset($_POST['kembalikan_buku'])) {
             </div>
         </div>
 
+        <!-- TABEL DAFTAR SISWA -->
+        <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Siswa Terdaftar</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
+                        <tr>
+                            <th class="p-3 rounded-l-lg">Nomor Kartu</th>
+                            <th class="p-3">Nama Siswa</th>
+                            <th class="p-3 rounded-r-lg">Kelas</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <?php
+                        // Query mengambil seluruh data siswa
+                        $q_siswa = mysqli_query($koneksi, "SELECT nomor_kartu, nama, kelas FROM siswa ORDER BY nama ASC");
+
+                        if (mysqli_num_rows($q_siswa) > 0):
+                            while ($s = mysqli_fetch_assoc($q_siswa)):
+                        ?>
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="p-3 font-mono font-medium text-blue-600"><?= $s['nomor_kartu']; ?></td>
+                                <td class="p-3 font-medium text-slate-800"><?= $s['nama']; ?></td>
+                                <td class="p-3 text-slate-600"><?= $s['kelas']; ?></td>
+                            </tr>
+                        <?php 
+                            endwhile;
+                        else: 
+                        ?>
+                            <tr>
+                                <td colspan="3" class="p-6 text-center text-slate-400 text-sm">
+                                    Belum ada siswa yang terdaftar.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 
 </body>
