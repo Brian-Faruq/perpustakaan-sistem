@@ -235,8 +235,21 @@ if (isset($_POST['kembalikan_buku'])) {
 
         </div>
 
-        <!-- TABEL DATA PEMINJAMAN AKTIF & HITUNG DENDA -->
-        <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+        <!-- NAVBAR / MENU TAB TOMBOL KONTROL TABEL -->
+        <div class="flex flex-wrap gap-3 border-b border-slate-200 pb-4">
+            <button onclick="openTab('pinjam-tab', this)" class="tab-btn bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition">
+                📋 Peminjaman Aktif
+            </button>
+            <button onclick="openTab('siswa-tab', this)" class="tab-btn bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
+                👨‍🎓 Daftar Siswa
+            </button>
+            <button onclick="openTab('buku-tab', this)" class="tab-btn bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
+                📚 Daftar Buku
+            </button>
+        </div>
+
+        <!-- TABEL DATA PEMINJAMAN AKTIF -->
+        <div id="pinjam-tab" class="tab-content bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Peminjaman Aktif</h2>
             
             <div class="overflow-x-auto">
@@ -252,7 +265,6 @@ if (isset($_POST['kembalikan_buku'])) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        // Query mengambil peminjaman yang statusnya masih dipinjam / aktif
                         $q_peminjaman = mysqli_query($koneksi, "
                             SELECT p.id AS id_pinjam, s.nama, s.kelas, b.judul, p.tanggal_pinjam 
                             FROM peminjaman p
@@ -271,7 +283,6 @@ if (isset($_POST['kembalikan_buku'])) {
                                 <td class="p-3 text-slate-700 font-medium"><?= $p['judul']; ?></td>
                                 <td class="p-3 text-slate-600"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
                                 <td class="p-3 text-center">
-                                    <!-- Tombol untuk mengembalikan buku -->
                                     <form action="" method="POST" onsubmit="return confirm('Yakin buku ini sudah dikembalikan?');">
                                         <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
                                         <button type="submit" name="kembalikan_buku" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
@@ -296,7 +307,7 @@ if (isset($_POST['kembalikan_buku'])) {
         </div>
 
         <!-- TABEL DAFTAR SISWA -->
-        <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+        <div id="siswa-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Siswa Terdaftar</h2>
             
             <div class="overflow-x-auto">
@@ -310,7 +321,6 @@ if (isset($_POST['kembalikan_buku'])) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        // Query mengambil seluruh data siswa
                         $q_siswa = mysqli_query($koneksi, "SELECT nomor_kartu, nama, kelas FROM siswa ORDER BY nama ASC");
 
                         if (mysqli_num_rows($q_siswa) > 0):
@@ -337,7 +347,7 @@ if (isset($_POST['kembalikan_buku'])) {
         </div>
 
         <!-- TABEL DAFTAR BUKU KOLEKSI -->
-        <div class="bg-white rounded-2xl shadow p-6 border border-slate-200">
+        <div id="buku-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Buku Koleksi</h2>
             
             <div class="overflow-x-auto">
@@ -351,7 +361,6 @@ if (isset($_POST['kembalikan_buku'])) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        // Query mengambil seluruh data buku
                         $q_buku_all = mysqli_query($koneksi, "SELECT judul, penulis, status FROM buku ORDER BY judul ASC");
 
                         if (mysqli_num_rows($q_buku_all) > 0):
@@ -388,6 +397,27 @@ if (isset($_POST['kembalikan_buku'])) {
         </div>
 
     </div>
+
+    <!-- SCRIPT TAB NAVIGATION -->
+    <script>
+        function openTab(tabName, btnElement) {
+            // Sembunyikan semua tabel
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.add('hidden'));
+
+            // Reset warna semua tombol tab
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(btn => {
+                btn.className = "tab-btn bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition";
+            });
+
+            // Tampilkan tabel yang dipilih
+            document.getElementById(tabName).classList.remove('hidden');
+
+            // Beri warna aktif pada tombol yang sedang diklik
+            btnElement.className = "tab-btn bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition";
+        }
+    </script>
 
 </body>
 </html>
