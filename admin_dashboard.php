@@ -411,7 +411,16 @@ if (isset($_POST['hapus_riwayat'])) {
 
         <!-- TABEL DAFTAR SISWA (ADA AKSI EDIT & HAPUS) -->
         <div id="siswa-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
-            <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Siswa Terdaftar</h2>
+            <?php
+            $q_siswa = mysqli_query($koneksi, "SELECT * FROM siswa ORDER BY nama ASC");
+            $total_siswa = mysqli_num_rows($q_siswa);
+            ?>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-800">Daftar Siswa Terdaftar</h2>
+                <span class="bg-blue-100 text-blue-800 text-xs font-extrabold px-3 py-1 rounded-full border border-blue-200">
+                    Total Siswa: <?= $total_siswa; ?>
+                </span>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
@@ -424,9 +433,7 @@ if (isset($_POST['hapus_riwayat'])) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        $q_siswa = mysqli_query($koneksi, "SELECT * FROM siswa ORDER BY nama ASC");
-
-                        if (mysqli_num_rows($q_siswa) > 0):
+                        if ($total_siswa > 0):
                             while ($s = mysqli_fetch_assoc($q_siswa)):
                         ?>
                             <tr class="hover:bg-slate-50 transition">
@@ -460,7 +467,16 @@ if (isset($_POST['hapus_riwayat'])) {
 
         <!-- TABEL DAFTAR BUKU KOLEKSI (ADA AKSI EDIT & HAPUS) -->
         <div id="buku-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
-            <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Buku Koleksi</h2>
+            <?php
+            $q_buku_all = mysqli_query($koneksi, "SELECT * FROM buku ORDER BY judul ASC");
+            $total_buku = mysqli_num_rows($q_buku_all);
+            ?>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-800">Daftar Buku Koleksi</h2>
+                <span class="bg-indigo-100 text-indigo-800 text-xs font-extrabold px-3 py-1 rounded-full border border-indigo-200">
+                    Total Buku: <?= $total_buku; ?>
+                </span>
+            </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
@@ -473,9 +489,7 @@ if (isset($_POST['hapus_riwayat'])) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        $q_buku_all = mysqli_query($koneksi, "SELECT * FROM buku ORDER BY judul ASC");
-
-                        if (mysqli_num_rows($q_buku_all) > 0):
+                        if ($total_buku > 0):
                             while ($b = mysqli_fetch_assoc($q_buku_all)):
                         ?>
                             <tr class="hover:bg-slate-50 transition">
