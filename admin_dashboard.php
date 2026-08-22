@@ -18,17 +18,14 @@ if (isset($_POST['tambah_siswa'])) {
     $kelas       = mysqli_real_escape_string($koneksi, trim($_POST['kelas']));
     $pass_hash   = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    // Cek dulu apakah nomor kartu sudah terdaftar
     $cek_kartu = mysqli_query($koneksi, "SELECT id FROM siswa WHERE nomor_kartu='$nomor_kartu'");
-    
     if (mysqli_num_rows($cek_kartu) > 0) {
-        $msg = "Gagal! Nomor Kartu ($nomor_kartu) sudah terdaftar untuk siswa lain.";
+        $msg = "Gagal! Nomor Kartu ($nomor_kartu) sudah terdaftar.";
         $msg_type = 'error';
     } else {
         $sql = "INSERT INTO siswa (nomor_kartu, nama, kelas, password) VALUES ('$nomor_kartu', '$nama', '$kelas', '$pass_hash')";
         if (mysqli_query($koneksi, $sql)) {
             $msg = "Siswa berhasil terdaftar!";
-            $msg_type = 'success';
         } else {
             $msg = "Terjadi kesalahan saat menyimpan data.";
             $msg_type = 'error';
@@ -36,12 +33,44 @@ if (isset($_POST['tambah_siswa'])) {
     }
 }
 
-// Aksi 2: Tambah Koleksi Buku
+// Aksi 2: Edit Siswa
+if (isset($_POST['edit_siswa'])) {
+    $id_siswa    = intval($_POST['id_siswa']);
+    $nomor_kartu = mysqli_real_escape_string($koneksi, trim($_POST['nomor_kartu']));
+    $nama        = mysqli_real_escape_string($koneksi, trim($_POST['nama']));
+    $kelas       = mysqli_real_escape_string($koneksi, trim($_POST['kelas']));
+
+    if (!empty($_POST['password'])) {
+        $pass_hash = password_hash($_POST['password'], PASSWORD_DEFAULT);
+        $sql = "UPDATE siswa SET nomor_kartu='$nomor_kartu', nama='$nama', kelas='$kelas', password='$pass_hash' WHERE id=$id_siswa";
+    } else {
+        $sql = "UPDATE siswa SET nomor_kartu='$nomor_kartu', nama='$nama', kelas='$kelas' WHERE id=$id_siswa";
+    }
+
+    if (mysqli_query($koneksi, $sql)) {
+        $msg = "Data siswa berhasil diperbarui!";
+    } else {
+        $msg = "Gagal memperbarui data siswa.";
+        $msg_type = 'error';
+    }
+}
+
+// Aksi 3: Hapus Siswa
+if (isset($_POST['hapus_siswa'])) {
+    $id_siswa = intval($_POST['id_siswa']);
+    if (mysqli_query($koneksi, "DELETE FROM siswa WHERE id = $id_siswa")) {
+        $msg = "Data siswa berhasil dihapus!";
+    } else {
+        $msg = "Gagal menghapus siswa. Pastikan siswa tidak memiliki riwayat transaksi aktif.";
+        $msg_type = 'error';
+    }
+}
+
+// Aksi 4: Tambah Koleksi Buku
 if (isset($_POST['tambah_buku'])) {
     $judul    = mysqli_real_escape_string($koneksi, trim($_POST['judul']));
     $penulis  = mysqli_real_escape_string($koneksi, trim($_POST['penulis']));
     $sinopsis = mysqli_real_escape_string($koneksi, trim($_POST['sinopsis']));
-    
     $nama_cover = 'default_cover.jpg';
 
     if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
@@ -56,7 +85,42 @@ if (isset($_POST['tambah_buku'])) {
     }
 }
 
-// Aksi 3: Transaksi Pinjam Buku via Tap Kartu
+// Aksi 5: Edit Buku
+if (isset($_POST['edit_buku'])) {
+    $id_buku  = intval($_POST['id_buku']);
+    $judul    = mysqli_real_escape_string($koneksi, trim($_POST['judul']));
+    $penulis  = mysqli_real_escape_string($koneksi, trim($_POST['penulis']));
+    $sinopsis = mysqli_real_escape_string($koneksi, trim($_POST['sinopsis']));
+
+    if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
+        $ext = pathinfo($_FILES['cover']['name'], PATHINFO_EXTENSION);
+        $nama_cover = time() . '_' . uniqid() . '.' . $ext;
+        move_uploaded_file($_FILES['cover']['tmp_name'], 'uploads/' . $nama_cover);
+        $sql = "UPDATE buku SET judul='$judul', penulis='$penulis', sinopsis='$sinopsis', cover='$nama_cover' WHERE id=$id_buku";
+    } else {
+        $sql = "UPDATE buku SET judul='$judul', penulis='$penulis', sinopsis='$sinopsis' WHERE id=$id_buku";
+    }
+
+    if (mysqli_query($koneksi, $sql)) {
+        $msg = "Data buku berhasil diperbarui!";
+    } else {
+        $msg = "Gagal memperbarui data buku.";
+        $msg_type = 'error';
+    }
+}
+
+// Aksi 6: Hapus Buku
+if (isset($_POST['hapus_buku'])) {
+    $id_buku = intval($_POST['id_buku']);
+    if (mysqli_query($koneksi, "DELETE FROM buku WHERE id = $id_buku")) {
+        $msg = "Buku berhasil dihapus dari sistem!";
+    } else {
+        $msg = "Gagal menghapus buku. Pastikan buku tidak sedang dipinjam.";
+        $msg_type = 'error';
+    }
+}
+
+// Aksi 7: Transaksi Pinjam Buku
 if (isset($_POST['pinjam_buku'])) {
     $nomor_kartu = mysqli_real_escape_string($koneksi, trim($_POST['nomor_kartu_pinjam']));
     $buku_id     = intval($_POST['buku_id']);
@@ -82,10 +146,9 @@ if (isset($_POST['pinjam_buku'])) {
     }
 }
 
-// Aksi 4: Pengembalian Buku via Tombol
+// Aksi 8: Pengembalian Buku
 if (isset($_POST['kembalikan_buku'])) {
     $id_pinjam = intval($_POST['id_peminjaman']);
-
     $q_get = mysqli_query($koneksi, "SELECT buku_id FROM peminjaman WHERE id = $id_pinjam");
     if ($data = mysqli_fetch_assoc($q_get)) {
         $buku_id = $data['buku_id'];
@@ -95,21 +158,14 @@ if (isset($_POST['kembalikan_buku'])) {
         mysqli_query($koneksi, "UPDATE buku SET status = 'tersedia' WHERE id = $buku_id");
 
         $msg = "Buku berhasil dikembalikan!";
-        $msg_type = 'success';
     }
 }
 
-// Aksi 5: Hapus Riwayat Peminjaman
+// Aksi 9: Hapus Riwayat
 if (isset($_POST['hapus_riwayat'])) {
     $id_riwayat = intval($_POST['id_riwayat']);
-
-    if (mysqli_query($koneksi, "DELETE FROM peminjaman WHERE id = $id_riwayat")) {
-        $msg = "Data riwayat berhasil dihapus!";
-        $msg_type = 'success';
-    } else {
-        $msg = "Gagal menghapus data riwayat.";
-        $msg_type = 'error';
-    }
+    mysqli_query($koneksi, "DELETE FROM peminjaman WHERE id = $id_riwayat");
+    $msg = "Data riwayat berhasil dihapus!";
 }
 ?>
 
@@ -288,9 +344,7 @@ if (isset($_POST['hapus_riwayat'])) {
                         else: 
                         ?>
                             <tr>
-                                <td colspan="5" class="p-6 text-center text-slate-400 text-sm">
-                                    Tidak ada peminjaman aktif saat ini.
-                                </td>
+                                <td colspan="5" class="p-6 text-center text-slate-400 text-sm">Tidak ada peminjaman aktif saat ini.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -298,7 +352,7 @@ if (isset($_POST['hapus_riwayat'])) {
             </div>
         </div>
 
-        <!-- TABEL RIWAYAT PEMINJAMAN (SELESAI) -->
+        <!-- TABEL RIWAYAT PEMINJAMAN -->
         <div id="riwayat-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Riwayat Peminjaman</h2>
             <div class="overflow-x-auto">
@@ -347,9 +401,7 @@ if (isset($_POST['hapus_riwayat'])) {
                         else: 
                         ?>
                             <tr>
-                                <td colspan="6" class="p-6 text-center text-slate-400 text-sm">
-                                    Belum ada riwayat peminjaman yang selesai.
-                                </td>
+                                <td colspan="6" class="p-6 text-center text-slate-400 text-sm">Belum ada riwayat peminjaman.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -357,7 +409,7 @@ if (isset($_POST['hapus_riwayat'])) {
             </div>
         </div>
 
-        <!-- TABEL DAFTAR SISWA -->
+        <!-- TABEL DAFTAR SISWA (ADA AKSI EDIT & HAPUS) -->
         <div id="siswa-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Siswa Terdaftar</h2>
             <div class="overflow-x-auto">
@@ -366,12 +418,13 @@ if (isset($_POST['hapus_riwayat'])) {
                         <tr>
                             <th class="p-3 rounded-l-lg">Nomor Kartu</th>
                             <th class="p-3">Nama Siswa</th>
-                            <th class="p-3 rounded-r-lg">Kelas</th>
+                            <th class="p-3">Kelas</th>
+                            <th class="p-3 text-center rounded-r-lg">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        $q_siswa = mysqli_query($koneksi, "SELECT nomor_kartu, nama, kelas FROM siswa ORDER BY nama ASC");
+                        $q_siswa = mysqli_query($koneksi, "SELECT * FROM siswa ORDER BY nama ASC");
 
                         if (mysqli_num_rows($q_siswa) > 0):
                             while ($s = mysqli_fetch_assoc($q_siswa)):
@@ -380,15 +433,24 @@ if (isset($_POST['hapus_riwayat'])) {
                                 <td class="p-3 font-mono font-medium text-blue-600"><?= $s['nomor_kartu']; ?></td>
                                 <td class="p-3 font-medium text-slate-800"><?= $s['nama']; ?></td>
                                 <td class="p-3 text-slate-600"><?= $s['kelas']; ?></td>
+                                <td class="p-3 text-center flex justify-center gap-2">
+                                    <button onclick='openEditSiswaModal(<?= json_encode($s); ?>)' class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                                        Edit
+                                    </button>
+                                    <form action="" method="POST" onsubmit="return confirm('Yakin ingin menghapus siswa ini?');">
+                                        <input type="hidden" name="id_siswa" value="<?= $s['id']; ?>">
+                                        <button type="submit" name="hapus_siswa" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                                            Hapus
+                                        </button>
+                                    </form>
+                                </td>
                             </tr>
                         <?php 
                             endwhile;
                         else: 
                         ?>
                             <tr>
-                                <td colspan="3" class="p-6 text-center text-slate-400 text-sm">
-                                    Belum ada siswa yang terdaftar.
-                                </td>
+                                <td colspan="4" class="p-6 text-center text-slate-400 text-sm">Belum ada siswa yang terdaftar.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -396,7 +458,7 @@ if (isset($_POST['hapus_riwayat'])) {
             </div>
         </div>
 
-        <!-- TABEL DAFTAR BUKU KOLEKSI -->
+        <!-- TABEL DAFTAR BUKU KOLEKSI (ADA AKSI EDIT & HAPUS) -->
         <div id="buku-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Buku Koleksi</h2>
             <div class="overflow-x-auto">
@@ -405,12 +467,13 @@ if (isset($_POST['hapus_riwayat'])) {
                         <tr>
                             <th class="p-3 rounded-l-lg">Judul Buku</th>
                             <th class="p-3">Penulis</th>
-                            <th class="p-3 text-center rounded-r-lg">Status</th>
+                            <th class="p-3 text-center">Status</th>
+                            <th class="p-3 text-center rounded-r-lg">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        $q_buku_all = mysqli_query($koneksi, "SELECT judul, penulis, status FROM buku ORDER BY judul ASC");
+                        $q_buku_all = mysqli_query($koneksi, "SELECT * FROM buku ORDER BY judul ASC");
 
                         if (mysqli_num_rows($q_buku_all) > 0):
                             while ($b = mysqli_fetch_assoc($q_buku_all)):
@@ -420,14 +483,21 @@ if (isset($_POST['hapus_riwayat'])) {
                                 <td class="p-3 text-slate-600"><?= $b['penulis']; ?></td>
                                 <td class="p-3 text-center">
                                     <?php if ($b['status'] === 'tersedia'): ?>
-                                        <span class="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-semibold">
-                                            Tersedia
-                                        </span>
+                                        <span class="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-semibold">Tersedia</span>
                                     <?php else: ?>
-                                        <span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-semibold">
-                                            Dipinjam
-                                        </span>
+                                        <span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-semibold">Dipinjam</span>
                                     <?php endif; ?>
+                                </td>
+                                <td class="p-3 text-center flex justify-center gap-2">
+                                    <button onclick='openEditBukuModal(<?= json_encode($b); ?>)' class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                                        Edit
+                                    </button>
+                                    <form action="" method="POST" onsubmit="return confirm('Yakin ingin menghapus buku ini?');">
+                                        <input type="hidden" name="id_buku" value="<?= $b['id']; ?>">
+                                        <button type="submit" name="hapus_buku" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                                            Hapus
+                                        </button>
+                                    </form>
                                 </td>
                             </tr>
                         <?php 
@@ -435,9 +505,7 @@ if (isset($_POST['hapus_riwayat'])) {
                         else: 
                         ?>
                             <tr>
-                                <td colspan="3" class="p-6 text-center text-slate-400 text-sm">
-                                    Belum ada buku yang terdaftar di sistem.
-                                </td>
+                                <td colspan="4" class="p-6 text-center text-slate-400 text-sm">Belum ada buku yang terdaftar.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -447,7 +515,67 @@ if (isset($_POST['hapus_riwayat'])) {
 
     </div>
 
-    <!-- SCRIPT TAB NAVIGATION -->
+    <!-- MODAL EDIT SISWA -->
+    <div id="modalSiswa" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4">
+            <h3 class="font-bold text-lg text-slate-800 border-b pb-2">Edit Data Siswa</h3>
+            <form action="" method="POST" class="space-y-3">
+                <input type="hidden" name="id_siswa" id="edit_siswa_id">
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Nomor Kartu:</label>
+                    <input type="text" name="nomor_kartu" id="edit_siswa_kartu" required class="w-full p-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Nama Siswa:</label>
+                    <input type="text" name="nama" id="edit_siswa_nama" required class="w-full p-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Kelas:</label>
+                    <input type="text" name="kelas" id="edit_siswa_kelas" required class="w-full p-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Password (Kosongkan jika tak diubah):</label>
+                    <input type="password" name="password" placeholder="••••••••" class="w-full p-2 border rounded-lg text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modalSiswa')" class="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-300">Batal</button>
+                    <button type="submit" name="edit_siswa" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT BUKU -->
+    <div id="modalBuku" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md space-y-4">
+            <h3 class="font-bold text-lg text-slate-800 border-b pb-2">Edit Data Buku</h3>
+            <form action="" method="POST" enctype="multipart/form-data" class="space-y-3">
+                <input type="hidden" name="id_buku" id="edit_buku_id">
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Judul Buku:</label>
+                    <input type="text" name="judul" id="edit_buku_judul" required class="w-full p-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Penulis:</label>
+                    <input type="text" name="penulis" id="edit_buku_penulis" required class="w-full p-2 border rounded-lg text-sm">
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Sinopsis Singkat:</label>
+                    <textarea name="sinopsis" id="edit_buku_sinopsis" rows="3" required class="w-full p-2 border rounded-lg text-sm"></textarea>
+                </div>
+                <div>
+                    <label class="text-xs font-semibold text-slate-600">Ganti Cover (Kosongkan jika tidak diubah):</label>
+                    <input type="file" name="cover" accept="image/*" class="w-full p-1.5 border rounded-lg text-sm bg-slate-50">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modalBuku')" class="px-4 py-2 bg-slate-200 text-slate-700 text-xs font-bold rounded-lg hover:bg-slate-300">Batal</button>
+                    <button type="submit" name="edit_buku" class="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SCRIPT TAB NAVIGATION & MODAL -->
     <script>
         function openTab(tabName, btnElement) {
             const tabContents = document.querySelectorAll('.tab-content');
@@ -460,6 +588,26 @@ if (isset($_POST['hapus_riwayat'])) {
 
             document.getElementById(tabName).classList.remove('hidden');
             btnElement.className = "tab-btn bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition";
+        }
+
+        function openEditSiswaModal(siswa) {
+            document.getElementById('edit_siswa_id').value = siswa.id;
+            document.getElementById('edit_siswa_kartu').value = siswa.nomor_kartu;
+            document.getElementById('edit_siswa_nama').value = siswa.nama;
+            document.getElementById('edit_siswa_kelas').value = siswa.kelas;
+            document.getElementById('modalSiswa').classList.remove('hidden');
+        }
+
+        function openEditBukuModal(buku) {
+            document.getElementById('edit_buku_id').value = buku.id;
+            document.getElementById('edit_buku_judul').value = buku.judul;
+            document.getElementById('edit_buku_penulis').value = buku.penulis;
+            document.getElementById('edit_buku_sinopsis').value = buku.sinopsis;
+            document.getElementById('modalBuku').classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
         }
     </script>
 
