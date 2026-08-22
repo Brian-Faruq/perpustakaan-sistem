@@ -409,20 +409,26 @@ if (isset($_POST['hapus_riwayat'])) {
             </div>
         </div>
 
-        <!-- TABEL DAFTAR SISWA (ADA AKSI EDIT & HAPUS) -->
+        <!-- TABEL DAFTAR SISWA (ADA AKSI EDIT & HAPUS + SEARCH BAR) -->
         <div id="siswa-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <?php
             $q_siswa = mysqli_query($koneksi, "SELECT * FROM siswa ORDER BY nama ASC");
             $total_siswa = mysqli_num_rows($q_siswa);
             ?>
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                 <h2 class="text-lg font-bold text-slate-800">Daftar Siswa Terdaftar</h2>
-                <span class="bg-blue-100 text-blue-800 text-xs font-extrabold px-3 py-1 rounded-full border border-blue-200">
-                    Total Siswa: <?= $total_siswa; ?>
-                </span>
+                
+                <!-- SEARCH BAR & TOTAL BADGE -->
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <input type="text" id="searchSiswa" onkeyup="filterSiswa()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <span class="bg-blue-100 text-blue-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-blue-200 whitespace-nowrap">
+                        Total: <?= $total_siswa; ?>
+                    </span>
+                </div>
             </div>
+
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
+                <table class="w-full text-left text-sm" id="tableSiswa">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
                         <tr>
                             <th class="p-3 rounded-l-lg">Nomor Kartu</th>
@@ -436,9 +442,9 @@ if (isset($_POST['hapus_riwayat'])) {
                         if ($total_siswa > 0):
                             while ($s = mysqli_fetch_assoc($q_siswa)):
                         ?>
-                            <tr class="hover:bg-slate-50 transition">
+                            <tr class="row-siswa hover:bg-slate-50 transition">
                                 <td class="p-3 font-mono font-medium text-blue-600"><?= $s['nomor_kartu']; ?></td>
-                                <td class="p-3 font-medium text-slate-800"><?= $s['nama']; ?></td>
+                                <td class="p-3 font-medium text-slate-800 cell-nama"><?= $s['nama']; ?></td>
                                 <td class="p-3 text-slate-600"><?= $s['kelas']; ?></td>
                                 <td class="p-3 text-center flex justify-center gap-2">
                                     <button onclick='openEditSiswaModal(<?= json_encode($s); ?>)' class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
@@ -456,7 +462,7 @@ if (isset($_POST['hapus_riwayat'])) {
                             endwhile;
                         else: 
                         ?>
-                            <tr>
+                            <tr id="emptySiswaRow">
                                 <td colspan="4" class="p-6 text-center text-slate-400 text-sm">Belum ada siswa yang terdaftar.</td>
                             </tr>
                         <?php endif; ?>
@@ -465,20 +471,26 @@ if (isset($_POST['hapus_riwayat'])) {
             </div>
         </div>
 
-        <!-- TABEL DAFTAR BUKU KOLEKSI (ADA AKSI EDIT & HAPUS) -->
+        <!-- TABEL DAFTAR BUKU KOLEKSI (ADA AKSI EDIT & HAPUS + SEARCH BAR) -->
         <div id="buku-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <?php
             $q_buku_all = mysqli_query($koneksi, "SELECT * FROM buku ORDER BY judul ASC");
             $total_buku = mysqli_num_rows($q_buku_all);
             ?>
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                 <h2 class="text-lg font-bold text-slate-800">Daftar Buku Koleksi</h2>
-                <span class="bg-indigo-100 text-indigo-800 text-xs font-extrabold px-3 py-1 rounded-full border border-indigo-200">
-                    Total Buku: <?= $total_buku; ?>
-                </span>
+                
+                <!-- SEARCH BAR & TOTAL BADGE -->
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <input type="text" id="searchBuku" onkeyup="filterBuku()" placeholder="Cari judul buku..." class="w-full sm:w-64 p-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <span class="bg-indigo-100 text-indigo-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-indigo-200 whitespace-nowrap">
+                        Total: <?= $total_buku; ?>
+                    </span>
+                </div>
             </div>
+
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
+                <table class="w-full text-left text-sm" id="tableBuku">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
                         <tr>
                             <th class="p-3 rounded-l-lg">Judul Buku</th>
@@ -492,8 +504,8 @@ if (isset($_POST['hapus_riwayat'])) {
                         if ($total_buku > 0):
                             while ($b = mysqli_fetch_assoc($q_buku_all)):
                         ?>
-                            <tr class="hover:bg-slate-50 transition">
-                                <td class="p-3 font-medium text-slate-800"><?= $b['judul']; ?></td>
+                            <tr class="row-buku hover:bg-slate-50 transition">
+                                <td class="p-3 font-medium text-slate-800 cell-judul"><?= $b['judul']; ?></td>
                                 <td class="p-3 text-slate-600"><?= $b['penulis']; ?></td>
                                 <td class="p-3 text-center">
                                     <?php if ($b['status'] === 'tersedia'): ?>
@@ -518,7 +530,7 @@ if (isset($_POST['hapus_riwayat'])) {
                             endwhile;
                         else: 
                         ?>
-                            <tr>
+                            <tr id="emptyBukuRow">
                                 <td colspan="4" class="p-6 text-center text-slate-400 text-sm">Belum ada buku yang terdaftar.</td>
                             </tr>
                         <?php endif; ?>
@@ -622,6 +634,36 @@ if (isset($_POST['hapus_riwayat'])) {
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // Filter Live Nama Siswa
+        function filterSiswa() {
+            let input = document.getElementById('searchSiswa').value.toLowerCase();
+            let rows = document.querySelectorAll('.row-siswa');
+
+            rows.forEach(row => {
+                let nama = row.querySelector('.cell-nama').textContent.toLowerCase();
+                if (nama.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // Filter Live Judul Buku
+        function filterBuku() {
+            let input = document.getElementById('searchBuku').value.toLowerCase();
+            let rows = document.querySelectorAll('.row-buku');
+
+            rows.forEach(row => {
+                let judul = row.querySelector('.cell-judul').textContent.toLowerCase();
+                if (judul.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
         }
     </script>
 
