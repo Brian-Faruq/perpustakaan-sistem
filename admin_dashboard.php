@@ -18,15 +18,13 @@ if (isset($_POST['tambah_siswa'])) {
     $kelas       = mysqli_real_escape_string($koneksi, trim($_POST['kelas']));
     $pass_hash   = password_hash($_POST['password'], PASSWORD_DEFAULT);
 
-    // 1. Cek dulu apakah nomor kartu sudah terdaftar
+    // Cek dulu apakah nomor kartu sudah terdaftar
     $cek_kartu = mysqli_query($koneksi, "SELECT id FROM siswa WHERE nomor_kartu='$nomor_kartu'");
     
     if (mysqli_num_rows($cek_kartu) > 0) {
-        // Jika nomor kartu sudah ada di database
         $msg = "Gagal! Nomor Kartu ($nomor_kartu) sudah terdaftar untuk siswa lain.";
         $msg_type = 'error';
     } else {
-        // Jika belum ada, masukkan data siswa baru
         $sql = "INSERT INTO siswa (nomor_kartu, nama, kelas, password) VALUES ('$nomor_kartu', '$nama', '$kelas', '$pass_hash')";
         if (mysqli_query($koneksi, $sql)) {
             $msg = "Siswa berhasil terdaftar!";
@@ -44,7 +42,6 @@ if (isset($_POST['tambah_buku'])) {
     $penulis  = mysqli_real_escape_string($koneksi, trim($_POST['penulis']));
     $sinopsis = mysqli_real_escape_string($koneksi, trim($_POST['sinopsis']));
     
-    // Default cover jika tidak upload gambar
     $nama_cover = 'default_cover.jpg';
 
     if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
@@ -65,19 +62,16 @@ if (isset($_POST['pinjam_buku'])) {
     $buku_id     = intval($_POST['buku_id']);
     $tgl_pinjam  = date('Y-m-d');
 
-    // Cek keberadaan siswa
     $q_siswa = mysqli_query($koneksi, "SELECT id, nama FROM siswa WHERE nomor_kartu='$nomor_kartu'");
     if (mysqli_num_rows($q_siswa) > 0) {
         $d_siswa  = mysqli_fetch_assoc($q_siswa);
         $siswa_id = $d_siswa['id'];
 
-        // Validasi: Cek apakah siswa masih punya pinjaman aktif
         $q_cek = mysqli_query($koneksi, "SELECT id FROM peminjaman WHERE siswa_id='$siswa_id' AND status_transaksi='berjalan'");
         if (mysqli_num_rows($q_cek) > 0) {
             $msg = "Gagal! Siswa " . $d_siswa['nama'] . " masih meminjam buku lain yang belum dikembalikan.";
             $msg_type = 'error';
         } else {
-            // Catat peminjaman & update status buku
             mysqli_query($koneksi, "INSERT INTO peminjaman (siswa_id, buku_id, tanggal_pinjam) VALUES ('$siswa_id', '$buku_id', '$tgl_pinjam')");
             mysqli_query($koneksi, "UPDATE buku SET status='dipinjam' WHERE id='$buku_id'");
             $msg = "Transaksi Peminjaman untuk " . $d_siswa['nama'] . " Berhasil!";
@@ -88,37 +82,33 @@ if (isset($_POST['pinjam_buku'])) {
     }
 }
 
-// Aksi 4: Pengembalian Buku
-if (isset($_GET['kembali_id'])) {
-    $pem_id  = intval($_GET['kembali_id']);
-    $buku_id = intval($_GET['buku_id']);
-    $tgl_kmb = date('Y-m-d');
-
-    mysqli_query($koneksi, "UPDATE peminjaman SET tanggal_kembali='$tgl_kmb', status_transaksi='selesai' WHERE id='$pem_id'");
-    mysqli_query($koneksi, "UPDATE buku SET status='tersedia' WHERE id='$buku_id'");
-
-    header("Location: admin_dashboard.php");
-    exit;
-}
-
-// Aksi 5: Pengembalian Buku via Tombol
+// Aksi 4: Pengembalian Buku via Tombol
 if (isset($_POST['kembalikan_buku'])) {
     $id_pinjam = intval($_POST['id_peminjaman']);
 
-    // Ambil buku_id terlebih dahulu
     $q_get = mysqli_query($koneksi, "SELECT buku_id FROM peminjaman WHERE id = $id_pinjam");
     if ($data = mysqli_fetch_assoc($q_get)) {
         $buku_id = $data['buku_id'];
-
-        // Update status peminjaman menjadi selesai & tanggal kembali
         $tgl_sekarang = date('Y-m-d');
-        mysqli_query($koneksi, "UPDATE peminjaman SET status_transaksi = 'selesai', tanggal_kembali = '$tgl_sekarang' WHERE id = $id_pinjam");
 
-        // Kembalikan status buku menjadi tersedia
+        mysqli_query($koneksi, "UPDATE peminjaman SET status_transaksi = 'selesai', tanggal_kembali = '$tgl_sekarang' WHERE id = $id_pinjam");
         mysqli_query($koneksi, "UPDATE buku SET status = 'tersedia' WHERE id = $buku_id");
 
         $msg = "Buku berhasil dikembalikan!";
         $msg_type = 'success';
+    }
+}
+
+// Aksi 5: Hapus Riwayat Peminjaman
+if (isset($_POST['hapus_riwayat'])) {
+    $id_riwayat = intval($_POST['id_riwayat']);
+
+    if (mysqli_query($koneksi, "DELETE FROM peminjaman WHERE id = $id_riwayat")) {
+        $msg = "Data riwayat berhasil dihapus!";
+        $msg_type = 'success';
+    } else {
+        $msg = "Gagal menghapus data riwayat.";
+        $msg_type = 'error';
     }
 }
 ?>
@@ -240,6 +230,9 @@ if (isset($_POST['kembalikan_buku'])) {
             <button onclick="openTab('pinjam-tab', this)" class="tab-btn bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition">
                 📋 Peminjaman Aktif
             </button>
+            <button onclick="openTab('riwayat-tab', this)" class="tab-btn bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
+                📜 Riwayat Peminjaman
+            </button>
             <button onclick="openTab('siswa-tab', this)" class="tab-btn bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
                 👨‍🎓 Daftar Siswa
             </button>
@@ -251,7 +244,6 @@ if (isset($_POST['kembalikan_buku'])) {
         <!-- TABEL DATA PEMINJAMAN AKTIF -->
         <div id="pinjam-tab" class="tab-content bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Peminjaman Aktif</h2>
-            
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
@@ -306,10 +298,68 @@ if (isset($_POST['kembalikan_buku'])) {
             </div>
         </div>
 
+        <!-- TABEL RIWAYAT PEMINJAMAN (SELESAI) -->
+        <div id="riwayat-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
+            <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Riwayat Peminjaman</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
+                        <tr>
+                            <th class="p-3 rounded-l-lg">Nama Siswa</th>
+                            <th class="p-3">Kelas</th>
+                            <th class="p-3">Judul Buku</th>
+                            <th class="p-3">Tanggal Pinjam</th>
+                            <th class="p-3">Tanggal Kembali</th>
+                            <th class="p-3 text-center rounded-r-lg">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <?php
+                        $q_riwayat = mysqli_query($koneksi, "
+                            SELECT p.id AS id_riwayat, s.nama, s.kelas, b.judul, p.tanggal_pinjam, p.tanggal_kembali 
+                            FROM peminjaman p
+                            JOIN siswa s ON p.siswa_id = s.id
+                            JOIN buku b ON p.buku_id = b.id
+                            WHERE p.status_transaksi = 'selesai'
+                            ORDER BY p.tanggal_kembali DESC
+                        ");
+
+                        if (mysqli_num_rows($q_riwayat) > 0):
+                            while ($r = mysqli_fetch_assoc($q_riwayat)):
+                        ?>
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="p-3 font-medium text-slate-800"><?= $r['nama']; ?></td>
+                                <td class="p-3 text-slate-600"><?= $r['kelas']; ?></td>
+                                <td class="p-3 text-slate-700 font-medium"><?= $r['judul']; ?></td>
+                                <td class="p-3 text-slate-600"><?= date('d-m-Y', strtotime($r['tanggal_pinjam'])); ?></td>
+                                <td class="p-3 text-emerald-600 font-medium"><?= date('d-m-Y', strtotime($r['tanggal_kembali'])); ?></td>
+                                <td class="p-3 text-center">
+                                    <form action="" method="POST" onsubmit="return confirm('Yakin ingin menghapus riwayat ini?');">
+                                        <input type="hidden" name="id_riwayat" value="<?= $r['id_riwayat']; ?>">
+                                        <button type="submit" name="hapus_riwayat" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                                            Hapus
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php 
+                            endwhile;
+                        else: 
+                        ?>
+                            <tr>
+                                <td colspan="6" class="p-6 text-center text-slate-400 text-sm">
+                                    Belum ada riwayat peminjaman yang selesai.
+                                </td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- TABEL DAFTAR SISWA -->
         <div id="siswa-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Siswa Terdaftar</h2>
-            
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
@@ -349,7 +399,6 @@ if (isset($_POST['kembalikan_buku'])) {
         <!-- TABEL DAFTAR BUKU KOLEKSI -->
         <div id="buku-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
             <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Buku Koleksi</h2>
-            
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
@@ -401,20 +450,15 @@ if (isset($_POST['kembalikan_buku'])) {
     <!-- SCRIPT TAB NAVIGATION -->
     <script>
         function openTab(tabName, btnElement) {
-            // Sembunyikan semua tabel
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => content.classList.add('hidden'));
 
-            // Reset warna semua tombol tab
             const tabButtons = document.querySelectorAll('.tab-btn');
             tabButtons.forEach(btn => {
                 btn.className = "tab-btn bg-white hover:bg-slate-200 text-slate-700 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition";
             });
 
-            // Tampilkan tabel yang dipilih
             document.getElementById(tabName).classList.remove('hidden');
-
-            // Beri warna aktif pada tombol yang sedang diklik
             btnElement.className = "tab-btn bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow transition";
         }
     </script>
