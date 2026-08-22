@@ -352,28 +352,14 @@ if (isset($_POST['hapus_riwayat'])) {
             </div>
         </div>
 
-        <!-- TABEL RIWAYAT PEMINJAMAN (+ SEARCH BAR NAMA SISWA & TOTAL) -->
+        <!-- TABEL RIWAYAT PEMINJAMAN (+ SEARCH BAR NAMA SISWA) -->
         <div id="riwayat-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
-            <?php
-            $q_riwayat = mysqli_query($koneksi, "
-                SELECT p.id AS id_riwayat, s.nama, s.kelas, b.judul, p.tanggal_pinjam, p.tanggal_kembali 
-                FROM peminjaman p
-                JOIN siswa s ON p.siswa_id = s.id
-                JOIN buku b ON p.buku_id = b.id
-                WHERE p.status_transaksi = 'selesai'
-                ORDER BY p.tanggal_kembali DESC
-            ");
-            $total_riwayat = mysqli_num_rows($q_riwayat);
-            ?>
             <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
                 <h2 class="text-lg font-bold text-slate-800">Daftar Riwayat Peminjaman</h2>
                 
-                <!-- SEARCH BAR & TOTAL BADGE -->
-                <div class="flex items-center gap-3 w-full sm:w-auto">
+                <!-- SEARCH BAR NAMA SISWA -->
+                <div class="w-full sm:w-auto">
                     <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    <span class="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-emerald-200 whitespace-nowrap">
-                        Total: <?= $total_riwayat; ?>
-                    </span>
                 </div>
             </div>
 
@@ -391,7 +377,16 @@ if (isset($_POST['hapus_riwayat'])) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        if ($total_riwayat > 0):
+                        $q_riwayat = mysqli_query($koneksi, "
+                            SELECT p.id AS id_riwayat, s.nama, s.kelas, b.judul, p.tanggal_pinjam, p.tanggal_kembali 
+                            FROM peminjaman p
+                            JOIN siswa s ON p.siswa_id = s.id
+                            JOIN buku b ON p.buku_id = b.id
+                            WHERE p.status_transaksi = 'selesai'
+                            ORDER BY p.tanggal_kembali DESC
+                        ");
+
+                        if (mysqli_num_rows($q_riwayat) > 0):
                             while ($r = mysqli_fetch_assoc($q_riwayat)):
                         ?>
                             <tr class="row-riwayat hover:bg-slate-50 transition">
