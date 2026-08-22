@@ -352,11 +352,33 @@ if (isset($_POST['hapus_riwayat'])) {
             </div>
         </div>
 
-        <!-- TABEL RIWAYAT PEMINJAMAN -->
+        <!-- TABEL RIWAYAT PEMINJAMAN (+ SEARCH BAR NAMA SISWA & TOTAL) -->
         <div id="riwayat-tab" class="tab-content hidden bg-white rounded-2xl shadow p-6 border border-slate-200">
-            <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Riwayat Peminjaman</h2>
+            <?php
+            $q_riwayat = mysqli_query($koneksi, "
+                SELECT p.id AS id_riwayat, s.nama, s.kelas, b.judul, p.tanggal_pinjam, p.tanggal_kembali 
+                FROM peminjaman p
+                JOIN siswa s ON p.siswa_id = s.id
+                JOIN buku b ON p.buku_id = b.id
+                WHERE p.status_transaksi = 'selesai'
+                ORDER BY p.tanggal_kembali DESC
+            ");
+            $total_riwayat = mysqli_num_rows($q_riwayat);
+            ?>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                <h2 class="text-lg font-bold text-slate-800">Daftar Riwayat Peminjaman</h2>
+                
+                <!-- SEARCH BAR & TOTAL BADGE -->
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                    <span class="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-emerald-200 whitespace-nowrap">
+                        Total: <?= $total_riwayat; ?>
+                    </span>
+                </div>
+            </div>
+
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
+                <table class="w-full text-left text-sm" id="tableRiwayat">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
                         <tr>
                             <th class="p-3 rounded-l-lg">Nama Siswa</th>
@@ -369,20 +391,11 @@ if (isset($_POST['hapus_riwayat'])) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        $q_riwayat = mysqli_query($koneksi, "
-                            SELECT p.id AS id_riwayat, s.nama, s.kelas, b.judul, p.tanggal_pinjam, p.tanggal_kembali 
-                            FROM peminjaman p
-                            JOIN siswa s ON p.siswa_id = s.id
-                            JOIN buku b ON p.buku_id = b.id
-                            WHERE p.status_transaksi = 'selesai'
-                            ORDER BY p.tanggal_kembali DESC
-                        ");
-
-                        if (mysqli_num_rows($q_riwayat) > 0):
+                        if ($total_riwayat > 0):
                             while ($r = mysqli_fetch_assoc($q_riwayat)):
                         ?>
-                            <tr class="hover:bg-slate-50 transition">
-                                <td class="p-3 font-medium text-slate-800"><?= $r['nama']; ?></td>
+                            <tr class="row-riwayat hover:bg-slate-50 transition">
+                                <td class="p-3 font-medium text-slate-800 cell-nama-riwayat"><?= $r['nama']; ?></td>
                                 <td class="p-3 text-slate-600"><?= $r['kelas']; ?></td>
                                 <td class="p-3 text-slate-700 font-medium"><?= $r['judul']; ?></td>
                                 <td class="p-3 text-slate-600"><?= date('d-m-Y', strtotime($r['tanggal_pinjam'])); ?></td>
@@ -400,7 +413,7 @@ if (isset($_POST['hapus_riwayat'])) {
                             endwhile;
                         else: 
                         ?>
-                            <tr>
+                            <tr id="emptyRiwayatRow">
                                 <td colspan="6" class="p-6 text-center text-slate-400 text-sm">Belum ada riwayat peminjaman.</td>
                             </tr>
                         <?php endif; ?>
@@ -659,6 +672,21 @@ if (isset($_POST['hapus_riwayat'])) {
             rows.forEach(row => {
                 let judul = row.querySelector('.cell-judul').textContent.toLowerCase();
                 if (judul.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // Filter Live Nama Siswa pada Riwayat
+        function filterRiwayat() {
+            let input = document.getElementById('searchRiwayat').value.toLowerCase();
+            let rows = document.querySelectorAll('.row-riwayat');
+
+            rows.forEach(row => {
+                let nama = row.querySelector('.cell-nama-riwayat').textContent.toLowerCase();
+                if (nama.includes(input)) {
                     row.style.display = "";
                 } else {
                     row.style.display = "none";
