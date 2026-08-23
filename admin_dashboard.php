@@ -299,7 +299,27 @@ if (isset($_POST['hapus_riwayat'])) {
 
         <!-- TABEL DATA PEMINJAMAN AKTIF -->
         <div id="pinjam-tab" class="tab-content bg-white rounded-2xl shadow p-6 border border-slate-200">
-            <h2 class="text-lg font-bold text-slate-800 mb-4">Daftar Peminjaman Aktif</h2>
+            
+            <?php
+            $q_peminjaman = mysqli_query($koneksi, "
+                SELECT p.id AS id_pinjam, s.nama, s.kelas, b.judul, p.tanggal_pinjam 
+                FROM peminjaman p
+                JOIN siswa s ON p.siswa_id = s.id
+                JOIN buku b ON p.buku_id = b.id
+                WHERE p.status_transaksi = 'berjalan'
+                ORDER BY p.tanggal_pinjam DESC
+            ");
+            $total_pinjam = mysqli_num_rows($q_peminjaman);
+            ?>
+
+            <!-- HEADER: JUDUL & BADGE TOTAL -->
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-slate-800">Daftar Peminjaman Aktif</h2>
+                <span class="bg-indigo-100 text-indigo-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-indigo-200 whitespace-nowrap">
+                    Total: <?= $total_pinjam; ?>
+                </span>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
@@ -313,16 +333,7 @@ if (isset($_POST['hapus_riwayat'])) {
                     </thead>
                     <tbody class="divide-y divide-slate-100">
                         <?php
-                        $q_peminjaman = mysqli_query($koneksi, "
-                            SELECT p.id AS id_pinjam, s.nama, s.kelas, b.judul, p.tanggal_pinjam 
-                            FROM peminjaman p
-                            JOIN siswa s ON p.siswa_id = s.id
-                            JOIN buku b ON p.buku_id = b.id
-                            WHERE p.status_transaksi = 'berjalan'
-                            ORDER BY p.tanggal_pinjam DESC
-                        ");
-
-                        if (mysqli_num_rows($q_peminjaman) > 0):
+                        if ($total_pinjam > 0):
                             while ($p = mysqli_fetch_assoc($q_peminjaman)):
                         ?>
                             <tr class="hover:bg-slate-50 transition">
