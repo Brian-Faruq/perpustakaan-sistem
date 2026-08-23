@@ -9,6 +9,11 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'siswa') {
 }
 
 $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, trim($_GET['search'])) : '';
+
+// Hitung Total Buku
+$q_total_buku = mysqli_query($koneksi, "SELECT COUNT(*) AS total FROM buku");
+$d_total_buku = mysqli_fetch_assoc($q_total_buku);
+$total_buku = $d_total_buku['total'];
 ?>
 
 <!DOCTYPE html>
@@ -31,16 +36,22 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, trim($_GE
 
     <div class="max-w-6xl mx-auto p-6">
         
-        <!-- HEADER & SEARCH BAR -->
+        <!-- HEADER, SEARCH BAR & TOTAL BUKU BADGE -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h2 class="text-2xl font-bold text-slate-800">Daftar Buku Koleksi</h2>
+            <!-- JUDUL & BADGE TOTAL BUKU -->
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+                <h2 class="text-2xl font-bold text-slate-800">Daftar Buku Koleksi</h2>
+                <span class="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-emerald-200 whitespace-nowrap">
+                    Total Buku: <?= $total_buku; ?>
+                </span>
+            </div>
 
             <form action="" method="GET" class="w-full md:w-80">
-                <input type="text" name="search" value="<?= htmlspecialchars($search); ?>" placeholder="Cari judul buku atau penulis..." class="w-full p-2.5 px-4 border rounded-xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+                <input type="text" name="search" value="<?= htmlspecialchars($search); ?>" placeholder="Cari judul buku atau penulis..." class="w-full p-2.5 px-4 border border-slate-200 rounded-xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
             </form>
         </div>
 
-        <!-- KATALOG GRID (Gambar 2) -->
+        <!-- KATALOG GRID -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
             <?php
             $query_str = "SELECT * FROM buku";
@@ -76,20 +87,18 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, trim($_GE
                     </div>
 
                     <div class="p-4 pt-0">
-                        <!-- Tombol Diganti Jadi "Lihat Detail" -->
                         <button onclick="openModal('modal-<?= $b['id']; ?>')" class="w-full bg-slate-800 hover:bg-slate-900 text-white text-sm py-2.5 rounded-xl font-medium transition">
                             Lihat Detail
                         </button>
                     </div>
                 </div>
 
-                <!-- MODAL OVERLAY DENGEN COVER SIDE-BY-SIDE (Gambar 3) -->
+                <!-- MODAL OVERLAY -->
                 <div id="modal-<?= $b['id']; ?>" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
                     <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
                         <button onclick="closeModal('modal-<?= $b['id']; ?>')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
 
                         <div class="flex flex-col sm:flex-row gap-4 items-start pt-2">
-                            <!-- Cover Buku di Dalam Overlay -->
                             <img src="<?= $gambar_cover; ?>" alt="<?= $b['judul']; ?>" class="w-28 h-40 object-cover rounded-xl shadow-md border flex-shrink-0 self-center sm:self-start">
                             
                             <div class="space-y-2 flex-1">
@@ -112,9 +121,16 @@ $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, trim($_GE
                 </div>
             <?php 
                 endwhile;
+            else:
+            ?>
+                <div class="col-span-full bg-white p-8 rounded-2xl text-center text-slate-400 border border-slate-200">
+                    Buku tidak ditemukan.
+                </div>
+            <?php
             endif; 
             ?>
         </div>
+    </div>
 
     <script>
         function openModal(id) {
