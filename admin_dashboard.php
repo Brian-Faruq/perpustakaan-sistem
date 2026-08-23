@@ -302,7 +302,7 @@ if (isset($_POST['hapus_riwayat'])) {
             
             <?php
             $q_peminjaman = mysqli_query($koneksi, "
-                SELECT p.id AS id_pinjam, s.nama, s.kelas, b.judul, p.tanggal_pinjam 
+                SELECT p.id AS id_pinjam, s.nama, s.kelas, s.nomor_kartu, b.judul, p.tanggal_pinjam 
                 FROM peminjaman p
                 JOIN siswa s ON p.siswa_id = s.id
                 JOIN buku b ON p.buku_id = b.id
@@ -312,12 +312,19 @@ if (isset($_POST['hapus_riwayat'])) {
             $total_pinjam = mysqli_num_rows($q_peminjaman);
             ?>
 
-            <!-- HEADER: JUDUL & BADGE TOTAL -->
-            <div class="flex justify-between items-center mb-4">
+            <!-- HEADER: JUDUL, SEARCH BAR / TAP KARTU, & BADGE TOTAL -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                 <h2 class="text-lg font-bold text-slate-800">Daftar Peminjaman Aktif</h2>
-                <span class="bg-indigo-100 text-indigo-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-indigo-200 whitespace-nowrap">
-                    Total: <?= $total_pinjam; ?>
-                </span>
+                
+                <div class="flex items-center gap-3">
+                    <!-- SEARCH BAR / TAP KARTU SISWA -->
+                    <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari siswa..." autofocus autocomplete="off" class="border border-slate-200 rounded-xl px-3 py-1.5 text-sm w-48 md:w-60 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+
+                    <!-- BADGE TOTAL -->
+                    <span class="bg-indigo-100 text-indigo-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-indigo-200 whitespace-nowrap">
+                        Total: <?= $total_pinjam; ?>
+                    </span>
+                </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -336,8 +343,8 @@ if (isset($_POST['hapus_riwayat'])) {
                         if ($total_pinjam > 0):
                             while ($p = mysqli_fetch_assoc($q_peminjaman)):
                         ?>
-                            <tr class="hover:bg-slate-50 transition">
-                                <td class="p-3 font-medium text-slate-800"><?= $p['nama']; ?></td>
+                            <tr class="row-peminjaman hover:bg-slate-50 transition" data-kartu="<?= htmlspecialchars($p['nomor_kartu']); ?>" data-nama="<?= htmlspecialchars($p['nama']); ?>">
+                                <td class="p-3 font-medium text-slate-800 cell-nama"><?= $p['nama']; ?></td>
                                 <td class="p-3 text-slate-600"><?= $p['kelas']; ?></td>
                                 <td class="p-3 text-slate-700 font-medium"><?= $p['judul']; ?></td>
                                 <td class="p-3 text-slate-600"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
@@ -693,6 +700,31 @@ if (isset($_POST['hapus_riwayat'])) {
             rows.forEach(row => {
                 let nama = row.querySelector('.cell-nama-riwayat').textContent.toLowerCase();
                 if (nama.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+
+        // Mencegah scanner RFID menekan 'Enter' yang bikin form submit/refresh
+        function preventRfidEnter(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                return false;
+            }
+        }
+
+        // Filter tabel berdasarkan Nama atau Nomor Kartu RFID
+        function filterPeminjamanTap() {
+            let input = document.getElementById('tapKartuReturn').value.toLowerCase().trim();
+            let rows = document.querySelectorAll('.row-peminjaman');
+
+            rows.forEach(row => {
+                let kartu = (row.getAttribute('data-kartu') || '').toLowerCase();
+                let nama = (row.getAttribute('data-nama') || '').toLowerCase();
+                
+                if (kartu.includes(input) || nama.includes(input)) {
                     row.style.display = "";
                 } else {
                     row.style.display = "none";
