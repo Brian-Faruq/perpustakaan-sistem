@@ -167,6 +167,34 @@ if (isset($_POST['hapus_riwayat'])) {
     mysqli_query($koneksi, "DELETE FROM peminjaman WHERE id = $id_riwayat");
     $msg = "Data riwayat berhasil dihapus!";
 }
+
+// Aksi 10: Kirim Peringatan Notif ke Siswa
+if (isset($_POST['kirim_peringatan'])) {
+    $id_pinjam = intval($_POST['id_peminjaman']);
+    
+    // Ambil data peminjaman untuk notifikasi
+    $q_get = mysqli_query($koneksi, "SELECT p.siswa_id, b.judul FROM peminjaman p JOIN buku b ON p.buku_id = b.id WHERE p.id = $id_pinjam");
+    if ($d_warn = mysqli_fetch_assoc($q_get)) {
+        $siswa_id = $d_warn['siswa_id'];
+        
+        // Buat string pesan tanpa tanda petik tunggal berlapir agar SQL tidak error
+        $judul_buku = $d_warn['judul'];
+        $pesan_teks = "Waktu peminjaman buku \"" . $judul_buku . "\" habis, kembalikan sekarang!";
+        
+        // Escape string sebelum masuk query SQL
+        $pesan = mysqli_real_escape_string($koneksi, $pesan_teks);
+        
+        // Simpan notifikasi ke database
+        $sql_notif = "INSERT INTO notifikasi (siswa_id, pesan, is_read, created_at) VALUES ('$siswa_id', '$pesan', 0, NOW())";
+        
+        if (mysqli_query($koneksi, $sql_notif)) {
+            $msg = "Peringatan berhasil dikirimkan ke siswa!";
+        } else {
+            $msg = "Gagal mengirimkan peringatan: " . mysqli_error($koneksi);
+            $msg_type = 'error';
+        }
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -348,11 +376,20 @@ if (isset($_POST['hapus_riwayat'])) {
                                 <td class="p-3 text-slate-600"><?= $p['kelas']; ?></td>
                                 <td class="p-3 text-slate-700 font-medium"><?= $p['judul']; ?></td>
                                 <td class="p-3 text-slate-600"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
-                                <td class="p-3 text-center">
+                                <td class="p-3 text-center flex justify-center items-center gap-2">
+                                    <!-- Tombol Kembalikan (Hijau) -->
                                     <form action="" method="POST" onsubmit="return confirm('Yakin buku ini sudah dikembalikan?');">
                                         <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
                                         <button type="submit" name="kembalikan_buku" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
                                             Kembalikan
+                                        </button>
+                                    </form>
+
+                                    <!-- Tombol Warning / Peringatan Denda (Kuning/Amber) -->
+                                    <form action="" method="POST" onsubmit="return confirm('Kirim notifikasi peringatan pengembalian ke siswa ini?');">
+                                        <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
+                                        <button type="submit" name="kirim_peringatan" class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center gap-1" title="Kirim Peringatan ke Siswa">
+                                            ⚠️ Peringatkan
                                         </button>
                                     </form>
                                 </td>
