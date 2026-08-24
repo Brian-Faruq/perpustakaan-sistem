@@ -8,9 +8,10 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'siswa') {
     exit;
 }
 
+$siswa_id = $_SESSION['id'] ?? $_SESSION['siswa_id'] ?? $_SESSION['user_id'] ?? 0;
 $search = isset($_GET['search']) ? mysqli_real_escape_string($koneksi, trim($_GET['search'])) : '';
 
-// Hitung Total Buku
+// Hitung Total Buku Katalog
 $q_total_buku = mysqli_query($koneksi, "SELECT COUNT(*) AS total FROM buku");
 $d_total_buku = mysqli_fetch_assoc($q_total_buku);
 $total_buku = $d_total_buku['total'];
@@ -29,7 +30,14 @@ $total_buku = $d_total_buku['total'];
     <nav class="bg-emerald-700 text-white px-6 py-4 flex justify-between items-center shadow-md">
         <h1 class="font-bold text-xl">Katalog Perpustakaan</h1>
         <div class="flex items-center space-x-4">
-            <span class="text-sm">Selamat Datang, <b><?= $_SESSION['nama']; ?></b></span>
+            <!-- TOMBOL LIHAT RIWAYAT PEMINJAMAN -->
+            <button onclick="openModal('modal-riwayat')" class="bg-emerald-800 hover:bg-emerald-900 text-white text-xs px-3.5 py-2 rounded-lg font-semibold transition border border-emerald-600 flex items-center gap-1.5 shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Riwayat Peminjaman
+            </button>
+            <span class="text-sm hidden sm:inline">Selamat Datang, <b><?= $_SESSION['nama']; ?></b></span>
             <a href="login.php" class="bg-red-600 hover:bg-red-700 text-xs px-3 py-2 rounded-lg font-semibold transition">Logout</a>
         </div>
     </nav>
@@ -38,11 +46,10 @@ $total_buku = $d_total_buku['total'];
         
         <!-- HEADER, SEARCH BAR & TOTAL BUKU BADGE -->
         <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <!-- JUDUL & BADGE TOTAL BUKU -->
             <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
                 <h2 class="text-2xl font-bold text-slate-800">Daftar Buku Koleksi</h2>
                 <span class="bg-emerald-100 text-emerald-800 text-xs font-extrabold px-3 py-2 rounded-lg border border-emerald-200 whitespace-nowrap">
-                    Total Buku: <?= $total_buku; ?>
+                    Total: <?= $total_buku; ?>
                 </span>
             </div>
 
@@ -68,7 +75,6 @@ $total_buku = $d_total_buku['total'];
             ?>
                 <div class="bg-white rounded-2xl shadow hover:shadow-lg transition overflow-hidden flex flex-col justify-between border border-slate-200">
                     <div>
-                        <!-- Cover Buku di Paling Atas Card -->
                         <div class="relative h-52 bg-slate-100 overflow-hidden">
                             <img src="<?= $gambar_cover; ?>" alt="<?= $b['judul']; ?>" class="w-full h-full object-cover">
                             <div class="absolute top-3 right-3">
@@ -93,7 +99,7 @@ $total_buku = $d_total_buku['total'];
                     </div>
                 </div>
 
-                <!-- MODAL OVERLAY -->
+                <!-- MODAL OVERLAY DETAIL BUKU -->
                 <div id="modal-<?= $b['id']; ?>" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
                     <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl relative">
                         <button onclick="closeModal('modal-<?= $b['id']; ?>')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
@@ -126,9 +132,69 @@ $total_buku = $d_total_buku['total'];
                 <div class="col-span-full bg-white p-8 rounded-2xl text-center text-slate-400 border border-slate-200">
                     Buku tidak ditemukan.
                 </div>
-            <?php
-            endif; 
-            ?>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <!-- MODAL OVERLAY RIWAYAT PEMINJAMAN -->
+    <div id="modal-riwayat" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl max-w-3xl w-full p-6 space-y-4 shadow-2xl relative">
+            <button onclick="closeModal('modal-riwayat')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+
+            <!-- HEADER MODAL & LIVE SEARCH -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pr-8">
+                <h3 class="font-bold text-xl text-slate-800">Riwayat Peminjaman Saya</h3>
+                <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari judul buku..." class="border border-slate-200 rounded-xl px-3 py-1.5 text-sm w-full sm:w-56 focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            </div>
+
+            <!-- TABEL RIWAYAT (OVERFLOW/SCROLL) -->
+            <div class="overflow-x-auto max-h-80 overflow-y-auto border border-slate-200 rounded-xl">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs sticky top-0 bg-white shadow-sm">
+                        <tr>
+                            <th class="p-3">Judul Buku</th>
+                            <th class="p-3">Penulis</th>
+                            <th class="p-3">Tanggal Pinjam</th>
+                            <th class="p-3">Tanggal Kembali</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <?php
+                        $q_riwayat = mysqli_query($koneksi, "
+                            SELECT b.judul, b.penulis, p.tanggal_pinjam, p.tanggal_kembali 
+                            FROM peminjaman p
+                            JOIN buku b ON p.buku_id = b.id
+                            WHERE p.siswa_id = '$siswa_id'
+                            ORDER BY p.id DESC
+                        ");
+
+                        if (mysqli_num_rows($q_riwayat) > 0):
+                            while ($r = mysqli_fetch_assoc($q_riwayat)):
+                                $tgl_kembali = !empty($r['tanggal_kembali']) ? date('d-m-Y', strtotime($r['tanggal_kembali'])) : '<span class="text-amber-600 font-semibold bg-amber-50 px-2.5 py-1 rounded-md text-xs border border-amber-200">Belum Kembali</span>';
+                        ?>
+                            <tr class="row-riwayat hover:bg-slate-50 transition">
+                                <td class="p-3 font-semibold text-slate-800 cell-judul"><?= htmlspecialchars($r['judul']); ?></td>
+                                <td class="p-3 text-slate-600"><?= htmlspecialchars($r['penulis']); ?></td>
+                                <td class="p-3 text-slate-600"><?= date('d-m-Y', strtotime($r['tanggal_pinjam'])); ?></td>
+                                <td class="p-3 text-slate-600"><?= $tgl_kembali; ?></td>
+                            </tr>
+                        <?php 
+                            endwhile;
+                        else: 
+                        ?>
+                            <tr>
+                                <td colspan="4" class="p-6 text-center text-slate-400 text-sm">Belum ada riwayat peminjaman.</td>
+                            </tr>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="text-right border-t pt-3">
+                <button onclick="closeModal('modal-riwayat')" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm px-4 py-2 rounded-xl font-medium">
+                    Tutup
+                </button>
+            </div>
         </div>
     </div>
 
@@ -140,6 +206,21 @@ $total_buku = $d_total_buku['total'];
         function closeModal(id) {
             document.getElementById(id).classList.add('hidden');
             document.getElementById(id).classList.remove('flex');
+        }
+
+        // Live search riwayat peminjaman berdasarkan judul buku
+        function filterRiwayat() {
+            let input = document.getElementById('searchRiwayat').value.toLowerCase();
+            let rows = document.querySelectorAll('.row-riwayat');
+
+            rows.forEach(row => {
+                let judul = row.querySelector('.cell-judul').textContent.toLowerCase();
+                if (judul.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
         }
     </script>
 
