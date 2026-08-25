@@ -277,6 +277,13 @@ if (isset($_POST['hapus_notif'])) {
                 row.style.display = judul.includes(input) ? "" : "none";
             });
         }
+
+        // Otomatis Buka Modal Notifikasi jika ada notifikasi belum dibaca saat login
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if ($unread_count > 0): ?>
+                openModal('modal-notifikasi');
+            <?php endif; ?>
+        });
     </script>
 </body>
 </html>
