@@ -204,6 +204,32 @@ if (isset($_POST['kirim_peringatan'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Perpustakaan</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- jQuery (Wajib untuk Select2) -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!-- Select2 CSS & JS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <!-- Custom styling agar Select2 serasi dengan Tailwind CSS -->
+    <style>
+        .select2-container .select2-selection--single {
+            height: 42px !important;
+            border-radius: 0.75rem !important; /* rounded-xl */
+            border-color: #cbd5e1 !important; /* border-slate-300 */
+            padding: 6px 8px !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+            right: 8px !important;
+        }
+        .select2-dropdown {
+            border-radius: 0.75rem !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body class="bg-slate-100 min-h-screen">
 
@@ -291,16 +317,17 @@ if (isset($_POST['kirim_peringatan'])) {
                         <label class="text-xs font-semibold text-slate-600">Tap Kartu Peminjam:</label>
                         <input type="text" name="nomor_kartu_pinjam" required placeholder="Tap kartu siswa..." class="w-full p-2 border rounded-lg text-sm bg-yellow-50 focus:bg-white border-yellow-400 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <div>
-                        <label class="text-xs font-semibold text-slate-600">Pilih Buku (Tersedia):</label>
-                        <select name="buku_id" required class="w-full p-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <div class="mb-4">
+                        <label class="block text-sm font-semibold text-slate-700 mb-1">Pilih Buku (Tersedia):</label>
+                        <select name="buku_id" class="select2-buku w-full" required>
                             <option value="">-- Pilih Buku --</option>
                             <?php
-                            $q_buku_ada = mysqli_query($koneksi, "SELECT * FROM buku WHERE status='tersedia' ORDER BY judul ASC");
-                            while ($b = mysqli_fetch_assoc($q_buku_ada)):
+                            // Contoh query mengambil buku yang tersedia
+                            $q_buku = mysqli_query($koneksi, "SELECT * FROM buku WHERE status = 'tersedia' ORDER BY judul ASC");
+                            while ($b = mysqli_fetch_assoc($q_buku)) {
+                                echo "<option value='".$b['id']."'>".htmlspecialchars($b['judul'])." - ".$b['penulis']."</option>";
+                            }
                             ?>
-                                <option value="<?= $b['id']; ?>"><?= $b['judul']; ?> — (<?= $b['penulis']; ?>)</option>
-                            <?php endwhile; ?>
                         </select>
                     </div>
                     <button type="submit" name="pinjam_buku" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold transition">Proses Peminjaman</button>
@@ -768,6 +795,14 @@ if (isset($_POST['kirim_peringatan'])) {
                 }
             });
         }
+
+        $(document).ready(function() {
+            $('.select2-buku').select2({
+                placeholder: "-- Pilih Buku --",
+                allowClear: true,
+                width: '100%'
+            });
+        });
     </script>
 
 </body>
