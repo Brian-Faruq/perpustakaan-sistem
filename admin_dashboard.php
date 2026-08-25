@@ -124,21 +124,36 @@ if (isset($_POST['hapus_buku'])) {
 if (isset($_POST['pinjam_buku'])) {
     $nomor_kartu = mysqli_real_escape_string($koneksi, trim($_POST['nomor_kartu_pinjam']));
     $buku_id     = intval($_POST['buku_id']);
+    $durasi_hari = isset($_POST['durasi_hari']) ? intval($_POST['durasi_hari']) : 3;
     $tgl_pinjam  = date('Y-m-d');
 
+    // Hitung tanggal jatuh tempo berdasarkan durasi yang dipilih
+    $tgl_jatuh_tempo = date('Y-m-d', strtotime("+$durasi_hari days", strtotime($tgl_pinjam)));
+
+    // 1. Cari data siswa berdasarkan nomor kartu terlebih dahulu
     $q_siswa = mysqli_query($koneksi, "SELECT id, nama FROM siswa WHERE nomor_kartu='$nomor_kartu'");
     if (mysqli_num_rows($q_siswa) > 0) {
         $d_siswa  = mysqli_fetch_assoc($q_siswa);
-        $siswa_id = $d_siswa['id'];
+        $siswa_id = $d_siswa['id']; // $siswa_id sudah diisi di sini
 
+        // 2. Cek apakah siswa masih memiliki peminjaman aktif
         $q_cek = mysqli_query($koneksi, "SELECT id FROM peminjaman WHERE siswa_id='$siswa_id' AND status_transaksi='berjalan'");
         if (mysqli_num_rows($q_cek) > 0) {
-            $msg = "Gagal! Siswa " . $d_siswa['nama'] . " masih meminjam buku lain yang belum dikembalikan.";
+            $msg = "Gagal! Siswa " . htmlspecialchars($d_siswa['nama']) . " masih meminjam buku lain yang belum dikembalikan.";
             $msg_type = 'error';
         } else {
-            mysqli_query($koneksi, "INSERT INTO peminjaman (siswa_id, buku_id, tanggal_pinjam) VALUES ('$siswa_id', '$buku_id', '$tgl_pinjam')");
-            mysqli_query($koneksi, "UPDATE buku SET status='dipinjam' WHERE id='$buku_id'");
-            $msg = "Transaksi Peminjaman untuk " . $d_siswa['nama'] . " Berhasil!";
+            // 3. Simpan transaksi peminjaman ke database (cukup 1 kali query saja)
+            $sql_insert = "INSERT INTO peminjaman (siswa_id, buku_id, tanggal_pinjam, durasi_hari, tanggal_jatuh_tempo, status_transaksi) 
+                           VALUES ('$siswa_id', '$buku_id', '$tgl_pinjam', '$durasi_hari', '$tgl_jatuh_tempo', 'berjalan')";
+            
+            if (mysqli_query($koneksi, $sql_insert)) {
+                // Update status buku menjadi dipinjam
+                mysqli_query($koneksi, "UPDATE buku SET status='dipinjam' WHERE id='$buku_id'");
+                $msg = "Transaksi Peminjaman untuk " . htmlspecialchars($d_siswa['nama']) . " Berhasil!";
+            } else {
+                $msg = "Gagal menyimpan peminjaman: " . mysqli_error($koneksi);
+                $msg_type = 'error';
+            }
         }
     } else {
         $msg = "Kartu siswa tidak terdaftar di sistem!";
@@ -330,6 +345,14 @@ if (isset($_POST['kirim_peringatan'])) {
                             ?>
                         </select>
                     </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600">Durasi Peminjaman (Hari):</label>
+                        <select name="durasi_hari" class="w-full p-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500">
+                            <?php for ($i = 1; $i <= 7; $i++): ?>
+                                <option value="<?= $i; ?>" <?= $i === 3 ? 'selected' : ''; ?>><?= $i; ?> Hari</option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
                     <button type="submit" name="pinjam_buku" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg text-sm font-bold transition">Proses Peminjaman</button>
                 </form>
             </div>
@@ -357,7 +380,7 @@ if (isset($_POST['kirim_peringatan'])) {
             
             <?php
             $q_peminjaman = mysqli_query($koneksi, "
-                SELECT p.id AS id_pinjam, s.nama, s.kelas, s.nomor_kartu, b.judul, p.tanggal_pinjam 
+                SELECT p.id AS id_pinjam, s.nama, s.kelas, s.nomor_kartu, b.judul, p.tanggal_pinjam, p.durasi_hari, p.tanggal_jatuh_tempo 
                 FROM peminjaman p
                 JOIN siswa s ON p.siswa_id = s.id
                 JOIN buku b ON p.buku_id = b.id
@@ -386,11 +409,13 @@ if (isset($_POST['kirim_peringatan'])) {
                 <table class="w-full text-left text-sm">
                     <thead class="bg-slate-100 text-slate-700 font-semibold uppercase text-xs">
                         <tr>
-                            <th class="p-3 rounded-l-lg">Nama Siswa</th>
+                            <th class="p-3">Nama Siswa</th>
                             <th class="p-3">Kelas</th>
                             <th class="p-3">Judul Buku</th>
                             <th class="p-3">Tanggal Pinjam</th>
-                            <th class="p-3 text-center rounded-r-lg">Aksi</th>
+                            <th class="p-3">Target Durasi</th>
+                            <th class="p-3">Sisa Waktu</th>
+                            <th class="p-3 text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -403,6 +428,10 @@ if (isset($_POST['kirim_peringatan'])) {
                                 <td class="p-3 text-slate-600"><?= $p['kelas']; ?></td>
                                 <td class="p-3 text-slate-700 font-medium"><?= $p['judul']; ?></td>
                                 <td class="p-3 text-slate-600"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
+                                <td class="p-3 text-slate-600"><?= $p['durasi_hari']; ?> Hari (s/d <?= date('d-m-Y', strtotime($p['tanggal_jatuh_tempo'])); ?>)</td>
+                                <td class="p-3 font-semibold">
+                                    <span class="countdown-timer" data-target="<?= $p['tanggal_jatuh_tempo']; ?> 23:59:59">Memuat...</span>
+                                </td>
                                 <td class="p-3 text-center flex justify-center items-center gap-2">
                                     <!-- Tombol Kembalikan (Hijau) -->
                                     <form action="" method="POST" onsubmit="return confirm('Yakin buku ini sudah dikembalikan?');">
@@ -803,6 +832,29 @@ if (isset($_POST['kirim_peringatan'])) {
                 width: '100%'
             });
         });
+
+        function updateCountdown() {
+            const timers = document.querySelectorAll('.countdown-timer');
+            timers.forEach(timer => {
+                const targetDate = new Date(timer.getAttribute('data-target')).getTime();
+                const now = new Date().getTime();
+                const diff = targetDate - now;
+
+                if (diff <= 0) {
+                    timer.innerHTML = '<span class="text-red-600 font-bold bg-red-100 px-2 py-1 rounded">Terlambat / Waktu Habis</span>';
+                } else {
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+                    timer.innerHTML = `<span class="text-emerald-700 bg-emerald-100 px-2 py-1 rounded text-xs font-mono">${days}h ${hours}j ${minutes}m ${seconds}s</span>`;
+                }
+            });
+        }
+
+        setInterval(updateCountdown, 1000);
+        updateCountdown();
     </script>
 
 </body>
