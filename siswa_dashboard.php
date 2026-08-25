@@ -92,8 +92,8 @@ if (isset($_POST['hapus_notif'])) {
                 </span>
             </div>
 
-            <form action="" method="GET" class="w-full md:w-80">
-                <input type="text" name="search" value="<?= htmlspecialchars($search); ?>" placeholder="Cari judul atau penulis..." class="w-full p-2.5 px-4 border border-slate-200 rounded-xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+            <form id="formSearch" action="" method="GET" class="w-full md:w-80">
+                <input type="text" id="inputSearch" name="search" value="<?= htmlspecialchars($search); ?>" placeholder="Cari judul atau penulis..." class="w-full p-2.5 px-4 border border-slate-200 rounded-xl text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" autocomplete="off">
             </form>
         </div>
 
@@ -284,6 +284,26 @@ if (isset($_POST['hapus_notif'])) {
                 openModal('modal-notifikasi');
             <?php endif; ?>
         });
+
+        // Auto-search saat ngetik (dengan delay 400ms biar ramah server)
+        let searchTimer;
+        const inputSearch = document.getElementById('inputSearch');
+        const formSearch = document.getElementById('formSearch');
+
+        if (inputSearch && formSearch) {
+            inputSearch.addEventListener('input', function() {
+                clearTimeout(searchTimer);
+                searchTimer = setTimeout(() => {
+                    formSearch.submit();
+                }, 400); // Menunggu 0.4 detik setelah user selesai ngetik
+            });
+
+            // Menjaga kursor tetap di akhir teks setelah page reload
+            const val = inputSearch.value;
+            inputSearch.value = '';
+            inputSearch.focus();
+            inputSearch.value = val;
+        }
     </script>
 </body>
 </html>
