@@ -27,6 +27,14 @@ $search_escaped = mysqli_real_escape_string($koneksi, $search);
 $q_total_buku = mysqli_query($koneksi, "SELECT COUNT(*) AS total FROM buku");
 $d_total_buku = mysqli_fetch_assoc($q_total_buku);
 $total_buku = $d_total_buku['total'] ?? 0;
+
+// Handler Hapus Notifikasi Siswa
+if (isset($_POST['hapus_notif'])) {
+    $notif_id = intval($_POST['notif_id']);
+    mysqli_query($koneksi, "DELETE FROM notifikasi WHERE id = $notif_id");
+    header("Location: " . $_SERVER['PHP_SELF']);
+    exit;
+}
 ?>
 
 <!DOCTYPE html>
