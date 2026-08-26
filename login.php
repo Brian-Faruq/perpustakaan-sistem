@@ -63,43 +63,68 @@ if (isset($_POST['login'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Perpustakaan</title>
+    <title>Login Perpustakaan - Sekolah Impian</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                orange: '#F37021', // Oranye Logo
+                amber: '#F9A01B',  // Yellow-Orange Logo
+                teal: '#2BB69D',   // Tosca Logo
+                navy: '#1B365D',   // Navy Logo
+                lightBg: '#F8FAFC' // Soft Gray Background
+              }
+            }
+          }
+        }
+      }
+    </script>
 </head>
-<body class="bg-slate-900 text-slate-100 flex items-center justify-center min-h-screen">
+<body class="bg-brand-lightBg text-slate-800 flex items-center justify-center min-h-screen relative overflow-hidden">
 
-    <div class="bg-slate-800 p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-700">
-        <div class="text-center mb-6">
-            <h2 class="text-3xl font-extrabold text-blue-400">Sistem Perpustakaan</h2>
-            <p class="text-xs text-slate-400 mt-1">Silakan login sebagai Admin atau Siswa</p>
+    <!-- Glowing Accent Circles Soft -->
+    <div class="absolute -top-32 -left-32 w-96 h-96 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-32 -right-32 w-96 h-96 bg-brand-teal/15 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="bg-white p-8 md:p-10 rounded-3xl shadow-xl w-full max-w-md border border-slate-100 relative z-10">
+        
+        <!-- Header & Title -->
+        <div class="text-center mb-8">
+            <h2 class="text-3xl font-black bg-gradient-to-r from-brand-orange via-brand-amber to-brand-teal bg-clip-text text-transparent">
+                PERPUSTAKAAN
+            </h2>
+            <p class="text-xs font-bold text-brand-navy tracking-widest uppercase mt-1">Sekolah Impian</p>
         </div>
 
         <?php if ($error): ?>
-            <div class="bg-red-500/20 border border-red-500 text-red-300 p-3 rounded-lg mb-4 text-sm text-center">
+            <div class="bg-rose-50 border border-rose-200 text-rose-600 p-3 rounded-xl mb-6 text-sm text-center font-medium">
                 <?= $error; ?>
             </div>
         <?php endif; ?>
 
         <form action="" method="POST" class="space-y-5">
             <div>
-                <label class="block text-sm font-medium text-slate-300 mb-1">Username / Nomor Kartu (RFID)</label>
-                <input type="text" name="user_input" value="<?= htmlspecialchars($remember_user); ?>" required autofocus placeholder="Tap Kartu atau ketik Username" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-200 placeholder-slate-500">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Username / Nomor Kartu (RFID)</label>
+                <input type="text" name="user_input" value="<?= htmlspecialchars($remember_user); ?>" required autofocus placeholder="Tap Kartu atau ketik Username" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white focus:outline-none text-slate-800 placeholder-slate-400 transition font-medium">
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-slate-300 mb-1">Password</label>
-                <input type="password" name="password" required placeholder="••••••••" class="w-full p-3 bg-slate-900 border border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-slate-200 placeholder-slate-500">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Password</label>
+                <input type="password" name="password" required placeholder="••••••••" class="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white focus:outline-none text-slate-800 placeholder-slate-400 transition font-medium">
             </div>
 
             <!-- Fitur Ingat Saya -->
             <div class="flex items-center justify-between">
-                <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-400 hover:text-slate-200 transition">
-                    <input type="checkbox" name="remember" <?= $remember_user ? 'checked' : ''; ?> class="w-4 h-4 rounded bg-slate-900 border-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-800">
+                <label class="flex items-center gap-2 cursor-pointer text-sm text-slate-600 hover:text-slate-900 transition font-medium">
+                    <input type="checkbox" name="remember" <?= $remember_user ? 'checked' : ''; ?> class="w-4 h-4 rounded border-slate-300 text-brand-orange focus:ring-brand-orange">
                     <span>Ingat Saya</span>
                 </label>
             </div>
 
-            <button type="submit" name="login" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg transition duration-200">
+            <button type="submit" name="login" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white font-bold py-3.5 rounded-xl transition duration-300 shadow-lg shadow-brand-orange/25 active:scale-[0.98]">
                 Masuk ke Sistem
             </button>
         </form>
