@@ -211,6 +211,8 @@ if (isset($_POST['kirim_peringatan'])) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
       tailwind.config = {
@@ -267,13 +269,6 @@ if (isset($_POST['kirim_peringatan'])) {
     </nav>
 
     <div class="max-w-7xl mx-auto p-6 space-y-8">
-
-        <?php if ($msg): ?>
-            <div class="<?= $msg_type == 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'; ?> border p-4 rounded-2xl shadow-sm text-sm font-semibold flex items-center justify-between">
-                <span><?= $msg; ?></span>
-                <button onclick="this.parentElement.remove()" class="text-xs opacity-70 hover:opacity-100">✕</button>
-            </div>
-        <?php endif; ?>
 
         <!-- GRID CONTROL PANEL -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -446,16 +441,18 @@ if (isset($_POST['kirim_peringatan'])) {
                                     <span class="countdown-timer" data-target="<?= $p['tanggal_jatuh_tempo']; ?> 23:59:59">Memuat...</span>
                                 </td>
                                 <td class="p-3.5 text-center flex justify-center items-center gap-2">
-                                    <form action="" method="POST" onsubmit="return confirm('Yakin buku ini sudah dikembalikan?');">
+                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin kembalikan buku ini?', this);">
                                         <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
-                                        <button type="submit" name="kembalikan_buku" class="bg-brand-teal hover:bg-teal-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                        <input type="hidden" name="kembalikan_buku" value="1">
+                                        <button type="submit" class="bg-brand-teal hover:bg-teal-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
                                             Kembalikan
                                         </button>
                                     </form>
 
-                                    <form action="" method="POST" onsubmit="return confirm('Kirim notifikasi peringatan pengembalian ke siswa ini?');">
+                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Kirim notifikasi peringatan pengembalian ke siswa ini?', this);">
                                         <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
-                                        <button type="submit" name="kirim_peringatan" class="bg-brand-amber hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1" title="Kirim Peringatan ke Siswa">
+                                        <input type="hidden" name="kirim_peringatan" value="1">
+                                        <button type="submit" class="bg-brand-amber hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1" title="Kirim Peringatan ke Siswa">
                                             ⚠️ Peringatkan
                                         </button>
                                     </form>
@@ -516,9 +513,10 @@ if (isset($_POST['kirim_peringatan'])) {
                                 <td class="p-3.5 text-slate-500"><?= date('d-m-Y', strtotime($r['tanggal_pinjam'])); ?></td>
                                 <td class="p-3.5 text-brand-teal font-bold"><?= date('d-m-Y', strtotime($r['tanggal_kembali'])); ?></td>
                                 <td class="p-3.5 text-center">
-                                    <form action="" method="POST" onsubmit="return confirm('Yakin ingin menghapus riwayat ini?');">
+                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin hapus riwayat ini?', this);">
                                         <input type="hidden" name="id_riwayat" value="<?= $r['id_riwayat']; ?>">
-                                        <button type="submit" name="hapus_riwayat" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                        <input type="hidden" name="hapus_riwayat" value="1">
+                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
                                             Hapus
                                         </button>
                                     </form>
@@ -576,9 +574,10 @@ if (isset($_POST['kirim_peringatan'])) {
                                     <button onclick='openEditSiswaModal(<?= json_encode($s); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
                                         Edit
                                     </button>
-                                    <form action="" method="POST" onsubmit="return confirm('Yakin ingin menghapus siswa ini?');">
+                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin menghapus siswa ini?', this);">
                                         <input type="hidden" name="id_siswa" value="<?= $s['id']; ?>">
-                                        <button type="submit" name="hapus_siswa" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                        <input type="hidden" name="hapus_siswa" value="1">
+                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
                                             Hapus
                                         </button>
                                     </form>
@@ -642,9 +641,10 @@ if (isset($_POST['kirim_peringatan'])) {
                                     <button onclick='openEditBukuModal(<?= json_encode($b); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
                                         Edit
                                     </button>
-                                    <form action="" method="POST" onsubmit="return confirm('Yakin ingin menghapus buku ini?');">
+                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin menghapus buku ini?', this);">
                                         <input type="hidden" name="id_buku" value="<?= $b['id']; ?>">
-                                        <button type="submit" name="hapus_buku" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                        <input type="hidden" name="hapus_buku" value="1">
+                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
                                             Hapus
                                         </button>
                                     </form>
@@ -726,6 +726,40 @@ if (isset($_POST['kirim_peringatan'])) {
     </div>
 
     <script>
+        <?php if ($msg): ?>
+            Swal.fire({
+                icon: '<?= $msg_type; ?>',
+                title: '<?= $msg_type == 'success' ? 'Berhasil!' : 'Gagal!'; ?>',
+                text: '<?= addslashes($msg); ?>',
+                confirmButtonColor: '#1B365D',
+                customClass: {
+                    popup: 'rounded-3xl'
+                }
+            });
+        <?php endif; ?>
+
+        function confirmAction(e, message, form) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Konfirmasi',
+                text: message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#F37021',
+                cancelButtonColor: '#64748B',
+                confirmButtonText: 'Ya, Lanjutkan!',
+                cancelButtonText: 'Batal',
+                customClass: {
+                    popup: 'rounded-3xl'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+            return false;
+        }
+
         function openTab(tabName, btnElement) {
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => content.classList.add('hidden'));
