@@ -2,7 +2,9 @@
 session_start();
 include 'koneksi.php';
 
-$error = '';
+$login_status = '';
+$login_message = '';
+$redirect_url = '';
 
 // Cek apakah ada cookie 'remember_user'
 $remember_user = isset($_COOKIE['remember_user']) ? $_COOKIE['remember_user'] : '';
@@ -28,33 +30,41 @@ if (isset($_POST['login'])) {
                 setcookie('remember_user', '', time() - 3600, "/"); // Hapus cookie jika tidak dicentang
             }
 
-            header("Location: admin_dashboard.php");
-            exit;
+            $login_status  = 'success';
+            $login_message = 'Selamat datang kembali, ' . htmlspecialchars($data_admin['nama']) . '!';
+            $redirect_url  = 'admin_dashboard.php';
         }
     }
 
-    // 2. Cek Akun Siswa (Bisa via Nama ATAU Nomor Kartu)
-    $query_siswa = mysqli_query($koneksi, "SELECT * FROM siswa WHERE nomor_kartu='$user_input' OR nama='$user_input'");
-    if (mysqli_num_rows($query_siswa) > 0) {
-        $data_siswa = mysqli_fetch_assoc($query_siswa);
-        if (password_verify($password, $data_siswa['password'])) {
-            $_SESSION['user_id'] = $data_siswa['id'];
-            $_SESSION['nama']    = $data_siswa['nama'];
-            $_SESSION['role']    = 'siswa';
+    // 2. Cek Akun Siswa jika bukan admin
+    if (empty($login_status)) {
+        $query_siswa = mysqli_query($koneksi, "SELECT * FROM siswa WHERE nomor_kartu='$user_input' OR nama='$user_input'");
+        if (mysqli_num_rows($query_siswa) > 0) {
+            $data_siswa = mysqli_fetch_assoc($query_siswa);
+            if (password_verify($password, $data_siswa['password'])) {
+                $_SESSION['user_id'] = $data_siswa['id'];
+                $_SESSION['nama']    = $data_siswa['nama'];
+                $_SESSION['role']    = 'siswa';
 
-            // Kelola Cookie Remember Me
-            if ($remember) {
-                setcookie('remember_user', $user_input, time() + (7 * 24 * 60 * 60), "/"); // Simpan 7 hari
-            } else {
-                setcookie('remember_user', '', time() - 3600, "/"); // Hapus cookie jika tidak dicentang
+                // Kelola Cookie Remember Me
+                if ($remember) {
+                    setcookie('remember_user', $user_input, time() + (7 * 24 * 60 * 60), "/"); // Simpan 7 hari
+                } else {
+                    setcookie('remember_user', '', time() - 3600, "/"); // Hapus cookie jika tidak dicentang
+                }
+
+                $login_status  = 'success';
+                $login_message = 'Selamat datang, ' . htmlspecialchars($data_siswa['nama']) . '!';
+                $redirect_url  = 'siswa_dashboard.php';
             }
-
-            header("Location: siswa_dashboard.php");
-            exit;
         }
     }
 
-    $error = "Username / Nomor Kartu atau Password salah!";
+    // 3. Jika status belum success berarti Login Gagal
+    if (empty($login_status)) {
+        $login_status  = 'error';
+        $login_message = 'Username / Nomor Kartu atau Password salah!';
+    }
 }
 ?>
 
@@ -65,6 +75,8 @@ if (isset($_POST['login'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login Perpustakaan - Sekolah Impian</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
       tailwind.config = {
         theme: {
@@ -99,12 +111,6 @@ if (isset($_POST['login'])) {
             <p class="text-xs font-bold text-brand-navy tracking-widest uppercase mt-1">Sekolah Impian</p>
         </div>
 
-        <?php if ($error): ?>
-            <div class="bg-rose-50 border border-rose-200 text-rose-600 p-3 rounded-xl mb-6 text-sm text-center font-medium">
-                <?= $error; ?>
-            </div>
-        <?php endif; ?>
-
         <form action="" method="POST" class="space-y-5">
             <div>
                 <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-1.5">Username / Nomor Kartu (RFID)</label>
@@ -129,6 +135,30 @@ if (isset($_POST['login'])) {
             </button>
         </form>
     </div>
+
+    <!-- Script SweetAlert Trigger -->
+    <script>
+    <?php if ($login_status === 'success'): ?>
+        Swal.fire({
+            title: 'Login Berhasil!',
+            text: '<?= $login_message; ?>',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false,
+            confirmButtonColor: '#2BB69D'
+        }).then(function() {
+            window.location.href = '<?= $redirect_url; ?>';
+        });
+    <?php elseif ($login_status === 'error'): ?>
+        Swal.fire({
+            title: 'Login Gagal!',
+            text: '<?= $login_message; ?>',
+            icon: 'error',
+            confirmButtonText: 'Coba Lagi',
+            confirmButtonColor: '#F37021'
+        });
+    <?php endif; ?>
+    </script>
 
 </body>
 </html>
