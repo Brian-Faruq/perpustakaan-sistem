@@ -70,7 +70,7 @@ if (isset($_POST['login'])) {
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Login Perpustakaan - Sekolah Impian</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -92,7 +92,7 @@ if (isset($_POST['login'])) {
       }
     </script>
     <style>
-        /* PAKSA SWEETALERT POSISI PERSIS DI TENGAH VIEWPORT */
+        /* SweetAlert Presisi Center Mod */
         body.swal2-shown .swal2-container {
             position: fixed !important;
             top: 0 !important;
@@ -111,13 +111,9 @@ if (isset($_POST['login'])) {
 
         .swal2-popup {
             margin: auto !important;
-            position: relative !important;
-            left: 0 !important;
-            right: 0 !important;
-            transform: none !important;
+            box-sizing: border-box !important;
         }
 
-        /* Penyesuaian Ukuran Ikon & Teks */
         .swal2-icon {
             transform: scale(0.75) !important;
             margin: 0.5rem auto -0.5rem auto !important;
@@ -132,47 +128,48 @@ if (isset($_POST['login'])) {
         }
     </style>
 </head>
-<body class="bg-brand-lightBg text-slate-800 antialiased min-h-screen relative overflow-x-hidden flex flex-col justify-between">
+<!-- h-screen & overflow-hidden mengunci layar agar TIDAK BISA DI-SCROLL sama sekali -->
+<body class="bg-brand-lightBg text-slate-800 antialiased h-screen overflow-hidden relative flex flex-col justify-between">
 
     <!-- Background Accents -->
     <div class="absolute -top-20 -left-20 w-80 h-80 bg-brand-orange/10 rounded-full blur-3xl pointer-events-none"></div>
     <div class="absolute -bottom-20 -right-20 w-80 h-80 bg-brand-teal/15 rounded-full blur-3xl pointer-events-none"></div>
 
-    <!-- MAIN CONTAINER -->
-    <div class="flex-grow flex items-center justify-center p-4 sm:p-6 z-10">
-        <div class="bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-slate-200/60 w-full max-w-sm border border-slate-100">
+    <!-- MAIN CONTAINER (Centered Vertical & Horizontal) -->
+    <div class="flex-grow flex items-center justify-center p-4 z-10 my-auto">
+        <div class="bg-white p-5 sm:p-7 rounded-3xl shadow-xl shadow-slate-200/60 w-full max-w-sm border border-slate-100">
             
             <!-- Header & Branding -->
-            <div class="text-center mb-6">
-                <div class="w-12 h-12 mx-auto mb-3 bg-gradient-to-tr from-brand-orange to-brand-amber rounded-2xl flex items-center justify-center shadow-md shadow-brand-orange/30">
-                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="text-center mb-5">
+                <div class="w-11 h-11 mx-auto mb-2 bg-gradient-to-tr from-brand-orange to-brand-amber rounded-2xl flex items-center justify-center shadow-md shadow-brand-orange/30">
+                    <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
                     </svg>
                 </div>
-                <h2 class="text-2xl font-black bg-gradient-to-r from-brand-orange via-brand-amber to-brand-teal bg-clip-text text-transparent tracking-tight">
+                <h2 class="text-xl sm:text-2xl font-black bg-gradient-to-r from-brand-orange via-brand-amber to-brand-teal bg-clip-text text-transparent tracking-tight">
                     PERPUSTAKAAN
                 </h2>
-                <p class="text-[10px] font-bold text-brand-navy tracking-widest uppercase mt-0.5">Sekolah Impian</p>
-                <p class="text-xs text-slate-400 mt-2">Silakan masuk menggunakan akun atau scan kartu RFID Anda.</p>
+                <p class="text-[9px] font-bold text-brand-navy tracking-widest uppercase mt-0.5">Sekolah Impian</p>
+                <p class="text-[11px] text-slate-400 mt-1.5 leading-tight">Silakan masuk menggunakan akun atau scan kartu RFID Anda.</p>
             </div>
 
             <!-- Form -->
-            <form action="" method="POST" class="space-y-4">
+            <form action="" method="POST" class="space-y-3.5">
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Username / Nomor Kartu</label>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Username / Nomor Kartu</label>
                     <div class="relative">
-                        <input type="text" name="user_input" value="<?= htmlspecialchars($remember_user); ?>" required autofocus placeholder="Tap Kartu / Username" class="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white focus:outline-none text-slate-800 placeholder-slate-400 transition text-xs font-medium">
-                        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <input type="text" name="user_input" value="<?= htmlspecialchars($remember_user); ?>" required autofocus placeholder="Tap Kartu / Username" class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white focus:outline-none text-slate-800 placeholder-slate-400 transition text-xs font-medium">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                         </svg>
                     </div>
                 </div>
 
                 <div>
-                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Password</label>
+                    <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">Password</label>
                     <div class="relative">
-                        <input type="password" name="password" required placeholder="••••••••" class="w-full pl-10 pr-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white focus:outline-none text-slate-800 placeholder-slate-400 transition text-xs font-medium">
-                        <svg class="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <input type="password" name="password" required placeholder="••••••••" class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white focus:outline-none text-slate-800 placeholder-slate-400 transition text-xs font-medium">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                         </svg>
                     </div>
@@ -181,12 +178,12 @@ if (isset($_POST['login'])) {
                 <!-- Remember Me -->
                 <div class="flex items-center justify-between pt-0.5">
                     <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600 hover:text-slate-900 transition font-medium">
-                        <input type="checkbox" name="remember" <?= $remember_user ? 'checked' : ''; ?> class="w-4 h-4 rounded border-slate-300 text-brand-orange focus:ring-brand-orange">
+                        <input type="checkbox" name="remember" <?= $remember_user ? 'checked' : ''; ?> class="w-3.5 h-3.5 rounded border-slate-300 text-brand-orange focus:ring-brand-orange">
                         <span>Ingat Saya</span>
                     </label>
                 </div>
 
-                <button type="submit" name="login" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white font-bold py-3 rounded-xl transition duration-300 shadow-lg shadow-brand-orange/25 active:scale-[0.98] text-xs mt-1">
+                <button type="submit" name="login" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white font-bold py-2.5 rounded-xl transition duration-300 shadow-md shadow-brand-orange/25 active:scale-[0.98] text-xs mt-1">
                     Masuk ke Sistem
                 </button>
             </form>
@@ -194,7 +191,7 @@ if (isset($_POST['login'])) {
     </div>
 
     <!-- Footer Mini Decorative -->
-    <div class="py-4 text-center text-[11px] text-slate-400 z-10">
+    <div class="py-3 text-center text-[10px] text-slate-400 z-10 shrink-0">
         &copy; <?= date('Y'); ?> E-Perpustakaan Sekolah Impian
     </div>
 
@@ -209,7 +206,8 @@ if (isset($_POST['login'])) {
             padding: '1.25rem',
             timer: 1500,
             showConfirmButton: false,
-            confirmButtonColor: '#2BB69D'
+            heightAuto: false,
+            target: 'body'
         }).then(function() {
             window.location.href = '<?= $redirect_url; ?>';
         });
@@ -221,7 +219,9 @@ if (isset($_POST['login'])) {
             width: '280px',
             padding: '1.25rem',
             confirmButtonText: 'Coba Lagi',
-            confirmButtonColor: '#F37021'
+            confirmButtonColor: '#F37021',
+            heightAuto: false,
+            target: 'body'
         });
     <?php endif; ?>
     </script>
