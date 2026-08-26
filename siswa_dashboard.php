@@ -44,16 +44,18 @@ if (isset($_POST['hapus_notif'])) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Siswa Perpustakaan</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SweetAlert2 CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         brand: {
-                            orange: '#F3811E', // Warna oranye utama logo
-                            red: '#E84524',    // Warna merah/oranye tua logo ("SEKOLAH")
-                            teal: '#1DB996',   // Warna hijau toska logo ("MPIAN")
-                            blue: '#1F3C88',   // Warna biru navy logo
+                            orange: '#F3811E',
+                            red: '#E84524',
+                            teal: '#1DB996',
+                            blue: '#1F3C88',
                             lightTeal: '#E6F8F4',
                         }
                     }
@@ -64,13 +66,13 @@ if (isset($_POST['hapus_notif'])) {
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-800">
 
-    <!-- NAVBAR (Menggunakan Gradient Oranye ke Merah sesuai pita logo) -->
+    <!-- NAVBAR -->
     <nav class="bg-gradient-to-r from-brand-orange to-brand-red text-white px-6 py-4 flex justify-between items-center shadow-md sticky top-0 z-40">
         <h1 class="font-bold text-xl tracking-wide flex items-center gap-2">
             <span>📚</span> Katalog Perpustakaan
         </h1>
         <div class="flex items-center space-x-3">
-            
+
             <!-- TOMBOL RIWAYAT PEMINJAMAN -->
             <button onclick="openModal('modal-riwayat')" class="bg-black/20 hover:bg-black/30 text-white text-xs px-3.5 py-2 rounded-xl font-semibold transition border border-white/20 flex items-center gap-1.5 shadow-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,8 +86,7 @@ if (isset($_POST['hapus_notif'])) {
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
-                
-                <!-- TITIK MERAH (MUNCIK JIKA ADA UNREAD NOTIF) -->
+
                 <?php if ($unread_count > 0): ?>
                     <span class="absolute -top-1 -right-1 flex h-4 w-4">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-teal opacity-75"></span>
@@ -97,7 +98,11 @@ if (isset($_POST['hapus_notif'])) {
             </button>
 
             <span class="text-sm hidden sm:inline pl-2 border-l border-white/30">Halo, <b><?= htmlspecialchars($nama_user); ?></b></span>
-            <a href="login.php" class="bg-brand-blue hover:bg-slate-900 text-xs px-3.5 py-2 rounded-xl font-semibold transition shadow-sm">Logout</a>
+            
+            <!-- TOMBOL LOGOUT -->
+            <button onclick="confirmLogout()" class="bg-brand-blue hover:bg-slate-900 text-xs px-3.5 py-2 rounded-xl font-semibold transition shadow-sm">
+                Logout
+            </button>
         </div>
     </nav>
 
@@ -296,6 +301,25 @@ if (isset($_POST['hapus_notif'])) {
             rows.forEach(row => {
                 let judul = row.querySelector('.cell-judul').textContent.toLowerCase();
                 row.style.display = judul.includes(input) ? "" : "none";
+            });
+        }
+
+        // FUNGSI KONFIRMASI LOGOUT -> LANGSUNG KE LOGIN.PHP
+        function confirmLogout() {
+            Swal.fire({
+                title: 'Yakin ingin keluar?',
+                text: 'Anda akan diarahkan kembali ke halaman login.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#E84524',
+                cancelButtonColor: '#1F3C88',
+                confirmButtonText: 'Ya, Keluar',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'login.php';
+                }
             });
         }
 
