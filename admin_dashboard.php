@@ -211,7 +211,6 @@ if (isset($_POST['kirim_peringatan'])) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <!-- SweetAlert2 CDN -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
@@ -220,11 +219,11 @@ if (isset($_POST['kirim_peringatan'])) {
           extend: {
             colors: {
               brand: {
-                orange: '#F37021', // Oranye Logo
-                amber: '#F9A01B',  // Yellow-Orange Logo
-                teal: '#2BB69D',   // Tosca Logo
-                navy: '#1B365D',   // Navy Logo
-                lightBg: '#F8FAFC' // Soft Gray Background
+                orange: '#F37021',
+                amber: '#F9A01B',
+                teal: '#2BB69D',
+                navy: '#1B365D',
+                lightBg: '#F8FAFC'
               }
             }
           }
@@ -244,107 +243,125 @@ if (isset($_POST['kirim_peringatan'])) {
             height: 40px !important;
             right: 8px !important;
         }
-        .select2-dropdown {
-            border-radius: 0.75rem !important;
-            border-color: #e2e8f0 !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
 <body class="bg-brand-lightBg text-slate-800 min-h-screen">
 
-    <!-- NAVBAR HEADER -->
-    <nav class="bg-brand-navy text-white px-6 py-4 flex justify-between items-center shadow-lg border-b border-brand-navy/20">
-        <div class="flex items-center gap-3">
-            <h1 class="font-black text-xl tracking-wide bg-gradient-to-r from-brand-amber to-brand-orange bg-clip-text text-transparent">
+    <!-- NAVBAR HEADER CLEAN UNTUK MOBILE -->
+    <nav class="bg-brand-navy text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-md sticky top-0 z-30">
+        <div class="flex items-center gap-2">
+            <h1 class="font-black text-base sm:text-xl tracking-wide bg-gradient-to-r from-brand-amber to-brand-orange bg-clip-text text-transparent uppercase">
                 PERPUSTAKAAN
             </h1>
-            <span class="hidden sm:inline-block text-xs bg-brand-teal/20 text-brand-teal px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">Admin</span>
+            <span class="hidden sm:inline-block text-xs bg-brand-teal/20 text-brand-teal px-2 py-0.5 rounded font-bold uppercase tracking-wider">Admin</span>
         </div>
-        <div class="flex items-center space-x-4">
-            <span class="text-sm font-medium text-slate-200">Petugas: <b class="text-white"><?= $_SESSION['nama']; ?></b></span>
-            <a href="login.php" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3.5 py-2 rounded-xl font-bold shadow-md shadow-rose-500/20 transition active:scale-95">Logout</a>
+        <div class="flex items-center gap-3">
+            <span class="hidden sm:inline text-xs sm:text-sm font-medium text-slate-200">
+                Petugas: <b class="text-white"><?= htmlspecialchars($_SESSION['nama']); ?></b>
+            </span>
+            <a href="login.php" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3.5 py-1.5 rounded-xl font-bold shadow transition active:scale-95">
+                Logout
+            </a>
         </div>
     </nav>
 
-    <div class="max-w-7xl mx-auto p-6 space-y-8">
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
 
-        <!-- GRID CONTROL PANEL -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- TAB SELECTION FORM UNTUK MOBILE (MD DISPLAY GRID SEJAJAR) -->
+        <div class="md:hidden flex overflow-x-auto no-scrollbar gap-2 pb-1">
+            <button onclick="switchFormTab('form-reg-tab', this)" class="form-tab-btn shrink-0 bg-brand-orange text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition">
+                1. Registrasi Siswa
+            </button>
+            <button onclick="switchFormTab('form-buku-tab', this)" class="form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition">
+                2. Tambah Buku
+            </button>
+            <button onclick="switchFormTab('form-pinjam-tab', this)" class="form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition">
+                3. Transaksi Pinjam
+            </button>
+        </div>
 
-            <!-- 1. Tambah Siswa -->
-            <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
+        <!-- CONTAINER FORM CONTROL PANEL -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+
+            <!-- 1. Form Registrasi Siswa -->
+            <div id="form-reg-tab" class="form-tab-content block md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
                 <div>
-                    <h3 class="font-bold text-base mb-4 text-brand-navy flex items-center gap-2">
+                    <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
                         <span class="bg-brand-orange text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">1</span>
                         Registrasi Siswa (Tap Kartu)
                     </h3>
                     <form action="" method="POST" class="space-y-3">
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Nomor Kartu (Tap di sini):</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nomor Kartu (Tap di sini):</label>
                             <input type="text" name="nomor_kartu" required placeholder="Tap kartu siswa..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Siswa:</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nama Siswa:</label>
                             <input type="text" name="nama" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Kelas:</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kelas:</label>
                             <input type="text" name="kelas" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Password Akun Siswa:</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Password Akun Siswa:</label>
                             <input type="password" name="password" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
                         </div>
-                        <button type="submit" name="tambah_siswa" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-brand-orange/20 transition active:scale-[0.98] mt-2">Simpan Data Siswa</button>
+                        <button type="submit" name="tambah_siswa" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-orange/20 transition active:scale-[0.98] mt-2">Simpan Data Siswa</button>
                     </form>
                 </div>
             </div>
 
-            <!-- 2. Tambah Buku -->
-            <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
+            <!-- 2. Form Tambah Buku -->
+            <div id="form-buku-tab" class="form-tab-content hidden md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
                 <div>
-                    <h3 class="font-bold text-base mb-4 text-brand-navy flex items-center gap-2">
+                    <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
                         <span class="bg-brand-teal text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">2</span>
                         Tambah Koleksi Buku
                     </h3>
                     <form action="" method="POST" enctype="multipart/form-data" class="space-y-3">
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Buku:</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Judul Buku:</label>
                             <input type="text" name="judul" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Penulis:</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Penulis:</label>
                             <input type="text" name="penulis" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sinopsis Singkat:</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sinopsis Singkat:</label>
                             <textarea name="sinopsis" rows="2" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition"></textarea>
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Cover Buku (JPG/PNG):</label>
-                            <input type="file" name="cover" accept="image/*" class="w-full p-1.5 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none">
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cover Buku (JPG/PNG):</label>
+                            <input type="file" name="cover" accept="image/*" class="w-full p-1 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none">
                         </div>
-                        <button type="submit" name="tambah_buku" class="w-full bg-brand-teal hover:bg-teal-600 text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-brand-teal/20 transition active:scale-[0.98] mt-2">Tambah Buku</button>
+                        <button type="submit" name="tambah_buku" class="w-full bg-brand-teal hover:bg-teal-600 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-teal/20 transition active:scale-[0.98] mt-2">Tambah Buku</button>
                     </form>
                 </div>
             </div>
 
-            <!-- 3. Transaksi Pinjam Buku -->
-            <div class="bg-white p-6 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
+            <!-- 3. Form Transaksi Pinjam Buku -->
+            <div id="form-pinjam-tab" class="form-tab-content hidden md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
                 <div>
-                    <h3 class="font-bold text-base mb-4 text-brand-navy flex items-center gap-2">
+                    <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
                         <span class="bg-brand-navy text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">3</span>
                         Transaksi Pinjam Buku
                     </h3>
                     <form action="" method="POST" class="space-y-3">
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Tap Kartu Peminjam:</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tap Kartu Peminjam:</label>
                             <input type="text" name="nomor_kartu_pinjam" required placeholder="Tap kartu siswa..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Pilih Buku (Tersedia):</label>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pilih Buku (Tersedia):</label>
                             <select name="buku_id" class="select2-buku w-full" required>
                                 <option value="">-- Pilih Buku --</option>
                                 <?php
@@ -356,39 +373,38 @@ if (isset($_POST['kirim_peringatan'])) {
                             </select>
                         </div>
                         <div>
-                            <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Durasi Peminjaman (Hari):</label>
+                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Durasi Peminjaman (Hari):</label>
                             <select name="durasi_hari" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
                                 <?php for ($i = 1; $i <= 7; $i++): ?>
                                     <option value="<?= $i; ?>" <?= $i === 3 ? 'selected' : ''; ?>><?= $i; ?> Hari</option>
                                 <?php endfor; ?>
                             </select>
                         </div>
-                        <button type="submit" name="pinjam_buku" class="w-full bg-brand-navy hover:bg-slate-800 text-white py-3 rounded-xl text-sm font-bold shadow-md shadow-brand-navy/20 transition active:scale-[0.98] mt-2">Proses Peminjaman</button>
+                        <button type="submit" name="pinjam_buku" class="w-full bg-brand-navy hover:bg-slate-800 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-navy/20 transition active:scale-[0.98] mt-2">Proses Peminjaman</button>
                     </form>
                 </div>
             </div>
 
         </div>
 
-        <!-- NAVBAR / MENU TAB TOMBOL KONTROL TABEL -->
-        <div class="flex flex-wrap gap-3 border-b border-slate-200 pb-4">
-            <button onclick="openTab('pinjam-tab', this)" class="tab-btn bg-brand-navy text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition">
+        <!-- TABEL KONTROL DATA PERPUSTAKAAN -->
+        <div class="flex overflow-x-auto no-scrollbar gap-2 sm:gap-3 border-b border-slate-200 pb-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <button onclick="openTab('pinjam-tab', this)" class="tab-btn shrink-0 bg-brand-navy text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition">
                 📋 Peminjaman Aktif
             </button>
-            <button onclick="openTab('riwayat-tab', this)" class="tab-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
+            <button onclick="openTab('riwayat-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
                 📜 Riwayat Peminjaman
             </button>
-            <button onclick="openTab('siswa-tab', this)" class="tab-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
+            <button onclick="openTab('siswa-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
                 👨‍🎓 Daftar Siswa
             </button>
-            <button onclick="openTab('buku-tab', this)" class="tab-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition">
+            <button onclick="openTab('buku-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
                 📚 Daftar Buku
             </button>
         </div>
 
         <!-- TABEL DATA PEMINJAMAN AKTIF -->
-        <div id="pinjam-tab" class="tab-content bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
-            
+        <div id="pinjam-tab" class="tab-content bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
             <?php
             $q_peminjaman = mysqli_query($koneksi, "
                 SELECT p.id AS id_pinjam, s.nama, s.kelas, s.nomor_kartu, b.judul, p.tanggal_pinjam, p.durasi_hari, p.tanggal_jatuh_tempo 
@@ -401,29 +417,27 @@ if (isset($_POST['kirim_peringatan'])) {
             $total_pinjam = mysqli_num_rows($q_peminjaman);
             ?>
 
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
-                <h2 class="text-lg font-bold text-brand-navy">Daftar Peminjaman Aktif</h2>
-                
-                <div class="flex items-center gap-3">
-                    <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari siswa..." autofocus autocomplete="off" class="border border-slate-200 rounded-xl px-3.5 py-2 text-sm w-48 md:w-60 focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
-
-                    <span class="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
+            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Peminjaman Aktif</h2>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari siswa..." autofocus autocomplete="off" class="border border-slate-200 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
+                    <span class="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-xs font-black px-3 py-1.5 sm:py-2 rounded-xl whitespace-nowrap">
                         Total: <?= $total_pinjam; ?>
                     </span>
                 </div>
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs tracking-wider">
+                <table class="w-full text-left text-xs sm:text-sm">
+                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
                         <tr>
-                            <th class="p-3.5 rounded-l-xl">Nama Siswa</th>
-                            <th class="p-3.5">Kelas</th>
-                            <th class="p-3.5">Judul Buku</th>
-                            <th class="p-3.5">Tanggal Pinjam</th>
-                            <th class="p-3.5">Target Durasi</th>
-                            <th class="p-3.5">Sisa Waktu</th>
-                            <th class="p-3.5 text-center rounded-r-xl">Aksi</th>
+                            <th class="p-3 rounded-l-xl">Nama Siswa</th>
+                            <th class="p-3">Kelas</th>
+                            <th class="p-3">Judul Buku</th>
+                            <th class="p-3">Tanggal Pinjam</th>
+                            <th class="p-3">Target Durasi</th>
+                            <th class="p-3">Sisa Waktu</th>
+                            <th class="p-3 text-center rounded-r-xl">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -432,28 +446,27 @@ if (isset($_POST['kirim_peringatan'])) {
                             while ($p = mysqli_fetch_assoc($q_peminjaman)):
                         ?>
                             <tr class="row-peminjaman hover:bg-slate-50 transition" data-kartu="<?= htmlspecialchars($p['nomor_kartu']); ?>" data-nama="<?= htmlspecialchars($p['nama']); ?>">
-                                <td class="p-3.5 font-semibold text-slate-800 cell-nama"><?= $p['nama']; ?></td>
-                                <td class="p-3.5 text-slate-600"><?= $p['kelas']; ?></td>
-                                <td class="p-3.5 text-slate-700 font-medium"><?= $p['judul']; ?></td>
-                                <td class="p-3.5 text-slate-500"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
-                                <td class="p-3.5 text-slate-500"><?= $p['durasi_hari']; ?> Hari (s/d <?= date('d-m-Y', strtotime($p['tanggal_jatuh_tempo'])); ?>)</td>
-                                <td class="p-3.5 font-semibold">
+                                <td class="p-3 font-semibold text-slate-800 cell-nama"><?= $p['nama']; ?></td>
+                                <td class="p-3 text-slate-600"><?= $p['kelas']; ?></td>
+                                <td class="p-3 text-slate-700 font-medium"><?= $p['judul']; ?></td>
+                                <td class="p-3 text-slate-500 whitespace-nowrap"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
+                                <td class="p-3 text-slate-500 whitespace-nowrap"><?= $p['durasi_hari']; ?> Hari</td>
+                                <td class="p-3 font-semibold whitespace-nowrap">
                                     <span class="countdown-timer" data-target="<?= $p['tanggal_jatuh_tempo']; ?> 23:59:59">Memuat...</span>
                                 </td>
-                                <td class="p-3.5 text-center flex justify-center items-center gap-2">
+                                <td class="p-3 text-center flex justify-center items-center gap-1.5">
                                     <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin kembalikan buku ini?', this);">
                                         <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
                                         <input type="hidden" name="kembalikan_buku" value="1">
-                                        <button type="submit" class="bg-brand-teal hover:bg-teal-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                        <button type="submit" class="bg-brand-teal hover:bg-teal-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
                                             Kembalikan
                                         </button>
                                     </form>
-
                                     <form action="" method="POST" onsubmit="return confirmAction(event, 'Kirim notifikasi peringatan pengembalian ke siswa ini?', this);">
                                         <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
                                         <input type="hidden" name="kirim_peringatan" value="1">
-                                        <button type="submit" class="bg-brand-amber hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1" title="Kirim Peringatan ke Siswa">
-                                            ⚠️ Peringatkan
+                                        <button type="submit" class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition flex items-center gap-1">
+                                            ⚠️ <span class="hidden sm:inline">Peringatkan</span>
                                         </button>
                                     </form>
                                 </td>
@@ -463,7 +476,7 @@ if (isset($_POST['kirim_peringatan'])) {
                         else: 
                         ?>
                             <tr>
-                                <td colspan="7" class="p-6 text-center text-slate-400 text-sm">Tidak ada peminjaman aktif saat ini.</td>
+                                <td colspan="7" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Tidak ada peminjaman aktif saat ini.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -472,24 +485,22 @@ if (isset($_POST['kirim_peringatan'])) {
         </div>
 
         <!-- TABEL RIWAYAT PEMINJAMAN -->
-        <div id="riwayat-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
-                <h2 class="text-lg font-bold text-brand-navy">Daftar Riwayat Peminjaman</h2>
-                <div class="w-full sm:w-auto">
-                    <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                </div>
+        <div id="riwayat-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
+            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Riwayat Peminjaman</h2>
+                <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm" id="tableRiwayat">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs tracking-wider">
+                <table class="w-full text-left text-xs sm:text-sm" id="tableRiwayat">
+                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
                         <tr>
-                            <th class="p-3.5 rounded-l-xl">Nama Siswa</th>
-                            <th class="p-3.5">Kelas</th>
-                            <th class="p-3.5">Judul Buku</th>
-                            <th class="p-3.5">Tanggal Pinjam</th>
-                            <th class="p-3.5">Tanggal Kembali</th>
-                            <th class="p-3.5 text-center rounded-r-xl">Aksi</th>
+                            <th class="p-3 rounded-l-xl">Nama Siswa</th>
+                            <th class="p-3">Kelas</th>
+                            <th class="p-3">Judul Buku</th>
+                            <th class="p-3">Tanggal Pinjam</th>
+                            <th class="p-3">Tanggal Kembali</th>
+                            <th class="p-3 text-center rounded-r-xl">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -507,16 +518,16 @@ if (isset($_POST['kirim_peringatan'])) {
                             while ($r = mysqli_fetch_assoc($q_riwayat)):
                         ?>
                             <tr class="row-riwayat hover:bg-slate-50 transition">
-                                <td class="p-3.5 font-semibold text-slate-800 cell-nama-riwayat"><?= $r['nama']; ?></td>
-                                <td class="p-3.5 text-slate-600"><?= $r['kelas']; ?></td>
-                                <td class="p-3.5 text-slate-700 font-medium"><?= $r['judul']; ?></td>
-                                <td class="p-3.5 text-slate-500"><?= date('d-m-Y', strtotime($r['tanggal_pinjam'])); ?></td>
-                                <td class="p-3.5 text-brand-teal font-bold"><?= date('d-m-Y', strtotime($r['tanggal_kembali'])); ?></td>
-                                <td class="p-3.5 text-center">
+                                <td class="p-3 font-semibold text-slate-800 cell-nama-riwayat"><?= $r['nama']; ?></td>
+                                <td class="p-3 text-slate-600"><?= $r['kelas']; ?></td>
+                                <td class="p-3 text-slate-700 font-medium"><?= $r['judul']; ?></td>
+                                <td class="p-3 text-slate-500 whitespace-nowrap"><?= date('d-m-Y', strtotime($r['tanggal_pinjam'])); ?></td>
+                                <td class="p-3 text-brand-teal font-bold whitespace-nowrap"><?= date('d-m-Y', strtotime($r['tanggal_kembali'])); ?></td>
+                                <td class="p-3 text-center">
                                     <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin hapus riwayat ini?', this);">
                                         <input type="hidden" name="id_riwayat" value="<?= $r['id_riwayat']; ?>">
                                         <input type="hidden" name="hapus_riwayat" value="1">
-                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
                                             Hapus
                                         </button>
                                     </form>
@@ -527,7 +538,7 @@ if (isset($_POST['kirim_peringatan'])) {
                         else: 
                         ?>
                             <tr id="emptyRiwayatRow">
-                                <td colspan="6" class="p-6 text-center text-slate-400 text-sm">Belum ada riwayat peminjaman.</td>
+                                <td colspan="6" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada riwayat peminjaman.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -536,15 +547,15 @@ if (isset($_POST['kirim_peringatan'])) {
         </div>
 
         <!-- TABEL DAFTAR SISWA -->
-        <div id="siswa-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
+        <div id="siswa-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
             <?php
             $q_siswa = mysqli_query($koneksi, "SELECT * FROM siswa ORDER BY nama ASC");
             $total_siswa = mysqli_num_rows($q_siswa);
             ?>
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
-                <h2 class="text-lg font-bold text-brand-navy">Daftar Siswa Terdaftar</h2>
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <input type="text" id="searchSiswa" onkeyup="filterSiswa()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Siswa Terdaftar</h2>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="searchSiswa" onkeyup="filterSiswa()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
                     <span class="bg-brand-teal/10 text-brand-teal border border-brand-teal/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
                         Total: <?= $total_siswa; ?>
                     </span>
@@ -552,13 +563,13 @@ if (isset($_POST['kirim_peringatan'])) {
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm" id="tableSiswa">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs tracking-wider">
+                <table class="w-full text-left text-xs sm:text-sm" id="tableSiswa">
+                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
                         <tr>
-                            <th class="p-3.5 rounded-l-xl">Nomor Kartu</th>
-                            <th class="p-3.5">Nama Siswa</th>
-                            <th class="p-3.5">Kelas</th>
-                            <th class="p-3.5 text-center rounded-r-xl">Aksi</th>
+                            <th class="p-3 rounded-l-xl">Nomor Kartu</th>
+                            <th class="p-3">Nama Siswa</th>
+                            <th class="p-3">Kelas</th>
+                            <th class="p-3 text-center rounded-r-xl">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -567,17 +578,17 @@ if (isset($_POST['kirim_peringatan'])) {
                             while ($s = mysqli_fetch_assoc($q_siswa)):
                         ?>
                             <tr class="row-siswa hover:bg-slate-50 transition">
-                                <td class="p-3.5 font-mono font-bold text-brand-orange"><?= $s['nomor_kartu']; ?></td>
-                                <td class="p-3.5 font-semibold text-slate-800 cell-nama"><?= $s['nama']; ?></td>
-                                <td class="p-3.5 text-slate-600"><?= $s['kelas']; ?></td>
-                                <td class="p-3.5 text-center flex justify-center gap-2">
-                                    <button onclick='openEditSiswaModal(<?= json_encode($s); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                <td class="p-3 font-mono font-bold text-brand-orange"><?= $s['nomor_kartu']; ?></td>
+                                <td class="p-3 font-semibold text-slate-800 cell-nama"><?= $s['nama']; ?></td>
+                                <td class="p-3 text-slate-600"><?= $s['kelas']; ?></td>
+                                <td class="p-3 text-center flex justify-center gap-1.5">
+                                    <button onclick='openEditSiswaModal(<?= json_encode($s); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
                                         Edit
                                     </button>
                                     <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin menghapus siswa ini?', this);">
                                         <input type="hidden" name="id_siswa" value="<?= $s['id']; ?>">
                                         <input type="hidden" name="hapus_siswa" value="1">
-                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
                                             Hapus
                                         </button>
                                     </form>
@@ -588,7 +599,7 @@ if (isset($_POST['kirim_peringatan'])) {
                         else: 
                         ?>
                             <tr id="emptySiswaRow">
-                                <td colspan="4" class="p-6 text-center text-slate-400 text-sm">Belum ada siswa yang terdaftar.</td>
+                                <td colspan="4" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada siswa yang terdaftar.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -597,15 +608,15 @@ if (isset($_POST['kirim_peringatan'])) {
         </div>
 
         <!-- TABEL DAFTAR BUKU KOLEKSI -->
-        <div id="buku-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
+        <div id="buku-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
             <?php
             $q_buku_all = mysqli_query($koneksi, "SELECT * FROM buku ORDER BY judul ASC");
             $total_buku = mysqli_num_rows($q_buku_all);
             ?>
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
-                <h2 class="text-lg font-bold text-brand-navy">Daftar Buku Koleksi</h2>
-                <div class="flex items-center gap-3 w-full sm:w-auto">
-                    <input type="text" id="searchBuku" onkeyup="filterBuku()" placeholder="Cari judul buku..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Buku Koleksi</h2>
+                <div class="flex items-center gap-2">
+                    <input type="text" id="searchBuku" onkeyup="filterBuku()" placeholder="Cari judul buku..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
                     <span class="bg-brand-navy/10 text-brand-navy border border-brand-navy/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
                         Total: <?= $total_buku; ?>
                     </span>
@@ -613,13 +624,13 @@ if (isset($_POST['kirim_peringatan'])) {
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm" id="tableBuku">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-xs tracking-wider">
+                <table class="w-full text-left text-xs sm:text-sm" id="tableBuku">
+                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
                         <tr>
-                            <th class="p-3.5 rounded-l-xl">Judul Buku</th>
-                            <th class="p-3.5">Penulis</th>
-                            <th class="p-3.5 text-center">Status</th>
-                            <th class="p-3.5 text-center rounded-r-xl">Aksi</th>
+                            <th class="p-3 rounded-l-xl">Judul Buku</th>
+                            <th class="p-3">Penulis</th>
+                            <th class="p-3 text-center">Status</th>
+                            <th class="p-3 text-center rounded-r-xl">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-100">
@@ -628,23 +639,23 @@ if (isset($_POST['kirim_peringatan'])) {
                             while ($b = mysqli_fetch_assoc($q_buku_all)):
                         ?>
                             <tr class="row-buku hover:bg-slate-50 transition">
-                                <td class="p-3.5 font-semibold text-slate-800 cell-judul"><?= $b['judul']; ?></td>
-                                <td class="p-3.5 text-slate-600"><?= $b['penulis']; ?></td>
-                                <td class="p-3.5 text-center">
+                                <td class="p-3 font-semibold text-slate-800 cell-judul"><?= $b['judul']; ?></td>
+                                <td class="p-3 text-slate-600"><?= $b['penulis']; ?></td>
+                                <td class="p-3 text-center">
                                     <?php if ($b['status'] === 'tersedia'): ?>
-                                        <span class="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 rounded-full font-bold">Tersedia</span>
+                                        <span class="bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold">Tersedia</span>
                                     <?php else: ?>
-                                        <span class="bg-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-bold">Dipinjam</span>
+                                        <span class="bg-amber-100 text-amber-700 text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold">Dipinjam</span>
                                     <?php endif; ?>
                                 </td>
-                                <td class="p-3.5 text-center flex justify-center gap-2">
-                                    <button onclick='openEditBukuModal(<?= json_encode($b); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                <td class="p-3 text-center flex justify-center gap-1.5">
+                                    <button onclick='openEditBukuModal(<?= json_encode($b); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
                                         Edit
                                     </button>
                                     <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin menghapus buku ini?', this);">
                                         <input type="hidden" name="id_buku" value="<?= $b['id']; ?>">
                                         <input type="hidden" name="hapus_buku" value="1">
-                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
                                             Hapus
                                         </button>
                                     </form>
@@ -655,7 +666,7 @@ if (isset($_POST['kirim_peringatan'])) {
                         else: 
                         ?>
                             <tr id="emptyBukuRow">
-                                <td colspan="4" class="p-6 text-center text-slate-400 text-sm">Belum ada buku yang terdaftar.</td>
+                                <td colspan="4" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada buku yang terdaftar.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>
@@ -667,24 +678,24 @@ if (isset($_POST['kirim_peringatan'])) {
 
     <!-- MODAL EDIT SISWA -->
     <div id="modalSiswa" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md space-y-4 border border-slate-100">
-            <h3 class="font-bold text-lg text-brand-navy border-b pb-3">Edit Data Siswa</h3>
+        <div class="bg-white rounded-3xl shadow-2xl p-5 sm:p-6 w-full max-w-md space-y-4 border border-slate-100">
+            <h3 class="font-bold text-base sm:text-lg text-brand-navy border-b pb-3">Edit Data Siswa</h3>
             <form action="" method="POST" class="space-y-3">
                 <input type="hidden" name="id_siswa" id="edit_siswa_id">
                 <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Nomor Kartu:</label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nomor Kartu:</label>
                     <input type="text" name="nomor_kartu" id="edit_siswa_kartu" required class="w-full p-2.5 border rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-brand-teal focus:outline-none">
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Siswa:</label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nama Siswa:</label>
                     <input type="text" name="nama" id="edit_siswa_nama" required class="w-full p-2.5 border rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-brand-teal focus:outline-none">
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Kelas:</label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kelas:</label>
                     <input type="text" name="kelas" id="edit_siswa_kelas" required class="w-full p-2.5 border rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-brand-teal focus:outline-none">
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Password (Kosongkan jika tak diubah):</label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Password (Kosongkan jika tak diubah):</label>
                     <input type="password" name="password" placeholder="••••••••" class="w-full p-2.5 border rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-brand-teal focus:outline-none">
                 </div>
                 <div class="flex justify-end gap-2 pt-3">
@@ -697,25 +708,25 @@ if (isset($_POST['kirim_peringatan'])) {
 
     <!-- MODAL EDIT BUKU -->
     <div id="modalBuku" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md space-y-4 border border-slate-100">
-            <h3 class="font-bold text-lg text-brand-navy border-b pb-3">Edit Data Buku</h3>
+        <div class="bg-white rounded-3xl shadow-2xl p-5 sm:p-6 w-full max-w-md space-y-4 border border-slate-100">
+            <h3 class="font-bold text-base sm:text-lg text-brand-navy border-b pb-3">Edit Data Buku</h3>
             <form action="" method="POST" enctype="multipart/form-data" class="space-y-3">
                 <input type="hidden" name="id_buku" id="edit_buku_id">
                 <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Judul Buku:</label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Judul Buku:</label>
                     <input type="text" name="judul" id="edit_buku_judul" required class="w-full p-2.5 border rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-brand-teal focus:outline-none">
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Penulis:</label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Penulis:</label>
                     <input type="text" name="penulis" id="edit_buku_penulis" required class="w-full p-2.5 border rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-brand-teal focus:outline-none">
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sinopsis Singkat:</label>
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sinopsis Singkat:</label>
                     <textarea name="sinopsis" id="edit_buku_sinopsis" rows="3" required class="w-full p-2.5 border rounded-xl text-sm bg-slate-50 focus:ring-2 focus:ring-brand-teal focus:outline-none"></textarea>
                 </div>
                 <div>
-                    <label class="text-xs font-bold text-slate-500 uppercase tracking-wider">Ganti Cover (Kosongkan jika tidak diubah):</label>
-                    <input type="file" name="cover" accept="image/*" class="w-full p-1.5 border rounded-xl text-xs bg-slate-50">
+                    <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Ganti Cover (Kosongkan jika tidak diubah):</label>
+                    <input type="file" name="cover" accept="image/*" class="w-full p-1 border rounded-xl text-xs bg-slate-50">
                 </div>
                 <div class="flex justify-end gap-2 pt-3">
                     <button type="button" onclick="closeModal('modalBuku')" class="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-200">Batal</button>
@@ -760,17 +771,33 @@ if (isset($_POST['kirim_peringatan'])) {
             return false;
         }
 
+        // Switch Tab Navigasi Form Khusus HP
+        function switchFormTab(targetTabId, btn) {
+            const contents = document.querySelectorAll('.form-tab-content');
+            contents.forEach(el => {
+                el.classList.add('hidden');
+            });
+            document.getElementById(targetTabId).classList.remove('hidden');
+
+            const btns = document.querySelectorAll('.form-tab-btn');
+            btns.forEach(b => {
+                b.className = "form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition";
+            });
+            btn.className = "form-tab-btn shrink-0 bg-brand-orange text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition";
+        }
+
+        // Switch Tab Navigasi Tabel Data
         function openTab(tabName, btnElement) {
             const tabContents = document.querySelectorAll('.tab-content');
             tabContents.forEach(content => content.classList.add('hidden'));
 
             const tabButtons = document.querySelectorAll('.tab-btn');
             tabButtons.forEach(btn => {
-                btn.className = "tab-btn bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-sm shadow-sm transition";
+                btn.className = "tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition";
             });
 
             document.getElementById(tabName).classList.remove('hidden');
-            btnElement.className = "tab-btn bg-brand-navy text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition";
+            btnElement.className = "tab-btn shrink-0 bg-brand-navy text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition";
         }
 
         function openEditSiswaModal(siswa) {
@@ -853,14 +880,14 @@ if (isset($_POST['kirim_peringatan'])) {
                 const diff = targetDate - now;
 
                 if (diff <= 0) {
-                    timer.innerHTML = '<span class="text-rose-600 font-bold bg-rose-100 px-2 py-1 rounded-md text-xs">Terlambat / Waktu Habis</span>';
+                    timer.innerHTML = '<span class="text-rose-600 font-bold bg-rose-100 px-2 py-0.5 rounded text-[10px] sm:text-xs">Terlambat</span>';
                 } else {
                     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
                     const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
                     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-                    timer.innerHTML = `<span class="text-brand-teal bg-teal-50 border border-teal-200 px-2 py-1 rounded-md text-xs font-mono font-bold">${days}h ${hours}j ${minutes}m ${seconds}s</span>`;
+                    timer.innerHTML = `<span class="text-brand-teal bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-[10px] sm:text-xs font-mono font-bold">${days}h ${hours}j ${minutes}m ${seconds}s</span>`;
                 }
             });
         }
