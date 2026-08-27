@@ -274,16 +274,16 @@ if (isset($_POST['kirim_peringatan'])) {
 
     <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
 
-        <!-- TAB SELECTION FORM UNTUK MOBILE (MD DISPLAY GRID SEJAJAR) -->
+        <!-- TAB SELECTION FORM UNTUK MOBILE (DEFAULT AKTIF TAB 3: TRANSAKSI PINJAM) -->
         <div class="md:hidden flex overflow-x-auto no-scrollbar gap-2 pb-1">
-            <button onclick="switchFormTab('form-reg-tab', this)" class="form-tab-btn shrink-0 bg-brand-orange text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition">
-                1. Registrasi Siswa
+            <button onclick="switchFormTab('form-pinjam-tab', this)" class="form-tab-btn shrink-0 bg-brand-navy text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition">
+                1. Transaksi Pinjam
+            </button>
+            <button onclick="switchFormTab('form-reg-tab', this)" class="form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition">
+                2. Registrasi Siswa
             </button>
             <button onclick="switchFormTab('form-buku-tab', this)" class="form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition">
-                2. Tambah Buku
-            </button>
-            <button onclick="switchFormTab('form-pinjam-tab', this)" class="form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition">
-                3. Transaksi Pinjam
+                3. Tambah Buku
             </button>
         </div>
 
@@ -291,7 +291,7 @@ if (isset($_POST['kirim_peringatan'])) {
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
 
             <!-- 1. Form Registrasi Siswa -->
-            <div id="form-reg-tab" class="form-tab-content block md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
+            <div id="form-reg-tab" class="form-tab-content hidden md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
                 <div>
                     <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
                         <span class="bg-brand-orange text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">1</span>
@@ -348,8 +348,8 @@ if (isset($_POST['kirim_peringatan'])) {
                 </div>
             </div>
 
-            <!-- 3. Form Transaksi Pinjam Buku -->
-            <div id="form-pinjam-tab" class="form-tab-content hidden md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
+            <!-- 3. Form Transaksi Pinjam Buku (DEFAULT DISPLAY MOBILE & AUTOFOCUS FOCUS) -->
+            <div id="form-pinjam-tab" class="form-tab-content block md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
                 <div>
                     <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
                         <span class="bg-brand-navy text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">3</span>
@@ -358,7 +358,7 @@ if (isset($_POST['kirim_peringatan'])) {
                     <form action="" method="POST" class="space-y-3">
                         <div>
                             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tap Kartu Peminjam:</label>
-                            <input type="text" name="nomor_kartu_pinjam" required placeholder="Tap kartu siswa..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
+                            <input type="text" id="input_nomor_kartu_pinjam" name="nomor_kartu_pinjam" required autofocus placeholder="Tap kartu siswa..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
                         </div>
                         <div>
                             <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pilih Buku (Tersedia):</label>
@@ -420,7 +420,7 @@ if (isset($_POST['kirim_peringatan'])) {
             <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
                 <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Peminjaman Aktif</h2>
                 <div class="flex items-center gap-2">
-                    <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari siswa..." autofocus autocomplete="off" class="border border-slate-200 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
+                    <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari siswa..." autocomplete="off" class="border border-slate-200 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
                     <span class="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-xs font-black px-3 py-1.5 sm:py-2 rounded-xl whitespace-nowrap">
                         Total: <?= $total_pinjam; ?>
                     </span>
@@ -737,6 +737,15 @@ if (isset($_POST['kirim_peringatan'])) {
     </div>
 
     <script>
+        // Auto Focus Langsung ke Input Tap Kartu Pinjam Saat Refresh Halaman
+        window.addEventListener('DOMContentLoaded', () => {
+            const pinjamInput = document.getElementById('input_nomor_kartu_pinjam');
+            if (pinjamInput) {
+                pinjamInput.focus();
+                pinjamInput.select();
+            }
+        });
+
         <?php if ($msg): ?>
             Swal.fire({
                 icon: '<?= $msg_type; ?>',
@@ -783,7 +792,12 @@ if (isset($_POST['kirim_peringatan'])) {
             btns.forEach(b => {
                 b.className = "form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition";
             });
-            btn.className = "form-tab-btn shrink-0 bg-brand-orange text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition";
+            btn.className = "form-tab-btn shrink-0 bg-brand-navy text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition";
+            
+            // Focus ke input pinjam jika tab pinjam dibuka
+            if (targetTabId === 'form-pinjam-tab') {
+                document.getElementById('input_nomor_kartu_pinjam').focus();
+            }
         }
 
         // Switch Tab Navigasi Tabel Data
