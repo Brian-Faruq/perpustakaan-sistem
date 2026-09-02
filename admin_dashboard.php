@@ -66,6 +66,17 @@ if (isset($_POST['hapus_siswa'])) {
     }
 }
 
+// Aksi 3.5: Hapus Semua Siswa via AJAX
+if (isset($_POST['hapus_semua_siswa_ajax'])) {
+    header('Content-Type: application/json');
+    if (mysqli_query($koneksi, "DELETE FROM siswa")) {
+        echo json_encode(['status' => 'success', 'message' => 'Semua data siswa berhasil dihapus!']);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Gagal menghapus siswa. Pastikan siswa tidak memiliki riwayat/transaksi aktif.']);
+    }
+    exit;
+}
+
 // Aksi 4: Tambah Koleksi Buku
 if (isset($_POST['tambah_buku'])) {
     $judul    = mysqli_real_escape_string($koneksi, trim($_POST['judul']));
@@ -587,6 +598,13 @@ if (isset($_POST['kirim_peringatan'])) {
             <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
                 <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Siswa Terdaftar</h2>
                 <div class="flex items-center gap-2">
+                    <!-- Tombol Hapus Semua Siswa (Sebelah Kiri Pencarian) -->
+                    <form action="" method="POST" onsubmit="return confirmHapusSemuaSiswa(event);">
+                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
+                            🗑️ Hapus Semua
+                        </button>
+                    </form>
+
                     <input type="text" id="searchSiswa" onkeyup="filterSiswa()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
                     <span class="bg-brand-teal/10 text-brand-teal border border-brand-teal/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
                         Total: <?= $total_siswa; ?>
@@ -1037,6 +1055,70 @@ if (isset($_POST['kirim_peringatan'])) {
                     // Kirim request ke PHP via Fetch/AJAX
                     let formData = new FormData();
                     formData.append('hapus_semua_riwayat_ajax', '1');
+
+                    fetch('admin_dashboard.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        // 2. Alert Berhasil / Gagal setelah eksekusi
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: data.message,
+                                confirmButtonColor: '#1B365D',
+                                customClass: { popup: 'rounded-3xl' }
+                            }).then(() => {
+                                location.reload(); // Refresh halaman setelah klik OK
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: data.message,
+                                confirmButtonColor: '#1B365D',
+                                customClass: { popup: 'rounded-3xl' }
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' });
+                    });
+                }
+            });
+            return false;
+        }
+
+        // Konfirmasi & Hapus Semua Siswa
+        function confirmHapusSemuaSiswa(e) {
+            e.preventDefault();
+            
+            // 1. Alert Konfirmasi
+            Swal.fire({
+                title: 'HAPUS SEMUA SISWA?',
+                text: "Tindakan ini akan menghapus seluruh data siswa terdaftar secara permanen!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#E11D48',
+                cancelButtonColor: '#64748B',
+                confirmButtonText: 'Ya, Hapus Semua!',
+                cancelButtonText: 'Batal',
+                customClass: { popup: 'rounded-3xl' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Loading indicator saat memproses
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Sedang menghapus data siswa...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    // Kirim request ke PHP via Fetch/AJAX
+                    let formData = new FormData();
+                    formData.append('hapus_semua_siswa_ajax', '1');
 
                     fetch('admin_dashboard.php', {
                         method: 'POST',
