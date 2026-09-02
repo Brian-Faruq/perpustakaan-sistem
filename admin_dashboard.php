@@ -33,6 +33,82 @@ if (isset($_POST['tambah_siswa'])) {
     }
 }
 
+// Aksi 1.5: Import Siswa dari File CSV / Excel (Anti-Duplikat & Default Password)
+if (isset($_POST['import_siswa'])) {
+    if (isset($_FILES['file_excel_siswa']) && $_FILES['file_excel_siswa']['error'] === UPLOAD_ERR_OK) {
+        $file_tmp = $_FILES['file_excel_siswa']['tmp_name'];
+        $ext = strtolower(pathinfo($_FILES['file_excel_siswa']['name'], PATHINFO_EXTENSION));
+
+        if (in_array($ext, ['csv', 'txt'])) {
+            $handle = fopen($file_tmp, "r");
+            $berhasil = 0;
+            $duplikat = 0;
+            $baris = 0;
+
+            // Deteksi Delimiter (Koma, Titik Koma, atau Tab)
+            $firstLine = fgets($handle);
+            $delimiter = ',';
+            if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) {
+                $delimiter = ';';
+            } elseif (substr_count($firstLine, "\t") > substr_count($firstLine, ',')) {
+                $delimiter = "\t";
+            }
+            rewind($handle);
+
+            while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
+                $baris++;
+                if ($baris == 1) continue; // Lewati header tabel
+
+                // Format Kolom CSV: [0] Nomor Kartu, [1] Nama, [2] Kelas, [3] Password (Opsional)
+                $nomor_kartu = isset($data[0]) ? mysqli_real_escape_string($koneksi, trim($data[0], " \t\n\r\0\x0B\"'")) : '';
+                $nama        = isset($data[1]) ? mysqli_real_escape_string($koneksi, trim($data[1], " \t\n\r\0\x0B\"'")) : '';
+                $kelas       = isset($data[2]) ? mysqli_real_escape_string($koneksi, trim($data[2], " \t\n\r\0\x0B\"'")) : '';
+                
+                // Jika password di CSV kosong, gunakan default '123456'
+                $raw_pass    = (isset($data[3]) && !empty(trim($data[3]))) ? trim($data[3], " \t\n\r\0\x0B\"'") : '123456';
+                $pass_hash   = password_hash($raw_pass, PASSWORD_DEFAULT);
+
+                if (!empty($nomor_kartu) && !empty($nama)) {
+                    // Cek Duplikasi Nomor Kartu
+                    $cek = mysqli_query($koneksi, "SELECT id FROM siswa WHERE nomor_kartu = '$nomor_kartu'");
+                    
+                    if (mysqli_num_rows($cek) == 0) {
+                        $sql = "INSERT INTO siswa (nomor_kartu, nama, kelas, password) VALUES ('$nomor_kartu', '$nama', '$kelas', '$pass_hash')";
+                        if (mysqli_query($koneksi, $sql)) {
+                            $berhasil++;
+                        }
+                    } else {
+                        $duplikat++;
+                    }
+                }
+            }
+            fclose($handle);
+
+            // Respon Pesan SweetAlert
+            if ($berhasil > 0) {
+                $msg = "Berhasil mengimpor $berhasil data siswa dari file!";
+                if ($duplikat > 0) {
+                    $msg .= " ($duplikat siswa dilewati karena nomor kartu sudah terdaftar)";
+                }
+            } else {
+                if ($duplikat > 0) {
+                    $msg = "Tidak ada data siswa baru yang ditambahkan. Semua nomor kartu sudah terdaftar!";
+                    $msg_type = 'error';
+                } else {
+                    $msg = "Gagal mengimpor data! Pastikan baris data di file CSV terisi dengan benar.";
+                    $msg_type = 'error';
+                }
+            }
+        } else {
+            $msg = "Format file tidak valid! Harap upload file .csv";
+            $msg_type = 'error';
+        }
+    } else {
+        $msg = "Pilih file CSV terlebih dahulu!";
+        $msg_type = 'error';
+    }
+}
+
 // Aksi 2: Edit Siswa
 if (isset($_POST['edit_siswa'])) {
     $id_siswa    = intval($_POST['id_siswa']);
@@ -415,14 +491,16 @@ if (isset($_POST['kirim_peringatan'])) {
         <!-- CONTAINER FORM CONTROL PANEL -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
 
-            <!-- 1. Form Registrasi Siswa -->
+            <!-- 1. Form Registrasi Siswa (Manual & Import Excel) -->
             <div id="form-reg-tab" class="form-tab-content hidden md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
                 <div>
                     <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
                         <span class="bg-brand-orange text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">1</span>
                         Registrasi Siswa (Tap Kartu)
                     </h3>
-                    <form action="" method="POST" class="space-y-3">
+                    
+                    <!-- Form 1: Input Siswa Manual -->
+                    <form action="" method="POST" class="space-y-3 pb-4 border-b border-slate-100">
                         <div>
                             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nomor Kartu (Tap di sini):</label>
                             <input type="text" name="nomor_kartu" required placeholder="Tap kartu siswa..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
@@ -439,7 +517,20 @@ if (isset($_POST['kirim_peringatan'])) {
                             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Password Akun Siswa:</label>
                             <input type="password" name="password" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
                         </div>
-                        <button type="submit" name="tambah_siswa" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-orange/20 transition active:scale-[0.98] mt-2">Simpan Data Siswa</button>
+                        <button type="submit" name="tambah_siswa" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-orange/20 transition active:scale-[0.98]">
+                            Simpan Data Siswa
+                        </button>
+                    </form>
+
+                    <!-- Form 2: Import Siswa dari File Excel (CSV) -->
+                    <form action="" method="POST" enctype="multipart/form-data" class="pt-4 space-y-2">
+                        <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                            📁 Atau Import Massal (Excel / CSV):
+                        </label>
+                        <input type="file" name="file_excel_siswa" accept=".csv" required class="w-full p-1 border border-emerald-200 rounded-xl text-xs bg-emerald-50/50 focus:outline-none">
+                        <button type="submit" name="import_siswa" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition active:scale-[0.98] flex items-center justify-center gap-1">
+                            📊 Upload & Import Excel
+                        </button>
                     </form>
                 </div>
             </div>
