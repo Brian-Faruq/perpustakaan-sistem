@@ -120,6 +120,16 @@ if (isset($_POST['hapus_buku'])) {
     }
 }
 
+// Aksi 6.5: Hapus Semua Buku
+if (isset($_POST['hapus_semua_buku'])) {
+    if (mysqli_query($koneksi, "DELETE FROM buku")) {
+        $msg = "Semua koleksi buku berhasil dihapus dari sistem!";
+    } else {
+        $msg = "Gagal menghapus beberapa/semua buku. Pastikan tidak ada buku yang sedang dipinjam.";
+        $msg_type = 'error';
+    }
+}
+
 // Aksi 7: Transaksi Pinjam Buku
 if (isset($_POST['pinjam_buku'])) {
     $nomor_kartu = mysqli_real_escape_string($koneksi, trim($_POST['nomor_kartu_pinjam']));
@@ -176,6 +186,16 @@ if (isset($_POST['hapus_riwayat'])) {
     $id_riwayat = intval($_POST['id_riwayat']);
     mysqli_query($koneksi, "DELETE FROM peminjaman WHERE id = $id_riwayat");
     $msg = "Data riwayat berhasil dihapus!";
+}
+
+// Aksi 9.5: Hapus Semua Riwayat Peminjaman
+if (isset($_POST['hapus_semua_riwayat'])) {
+    if (mysqli_query($koneksi, "DELETE FROM peminjaman WHERE status_transaksi = 'selesai'")) {
+        $msg = "Semua riwayat peminjaman berhasil dihapus!";
+    } else {
+        $msg = "Gagal menghapus riwayat peminjaman.";
+        $msg_type = 'error';
+    }
 }
 
 // Aksi 10: Kirim Peringatan Notif ke Siswa
@@ -488,7 +508,17 @@ if (isset($_POST['kirim_peringatan'])) {
         <div id="riwayat-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
             <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
                 <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Riwayat Peminjaman</h2>
-                <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                <div class="flex items-center gap-2">
+                    <!-- Tombol Hapus Semua Riwayat (Sebelah Kiri Pencarian) -->
+                    <form action="" method="POST" id="formHapusSemuaRiwayat" onsubmit="return confirmHapusSemuaRiwayat(event, this);">
+                        <input type="hidden" name="hapus_semua_riwayat" value="1">
+                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
+                            🗑️ Hapus Semua
+                        </button>
+                    </form>
+
+                    <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                </div>
             </div>
 
             <div class="overflow-x-auto">
@@ -616,13 +646,20 @@ if (isset($_POST['kirim_peringatan'])) {
             <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
                 <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Buku Koleksi</h2>
                 <div class="flex items-center gap-2">
+                    <!-- Tombol Hapus Semua Buku (Sebelah Kiri Pencarian) -->
+                    <form action="" method="POST" id="formHapusSemuaBuku" onsubmit="return confirmHapusSemuaBuku(event, this);">
+                        <input type="hidden" name="hapus_semua_buku" value="1">
+                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
+                            🗑️ Hapus Semua
+                        </button>
+                    </form>
+
                     <input type="text" id="searchBuku" onkeyup="filterBuku()" placeholder="Cari judul buku..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
                     <span class="bg-brand-navy/10 text-brand-navy border border-brand-navy/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
                         Total: <?= $total_buku; ?>
                     </span>
                 </div>
             </div>
-
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs sm:text-sm" id="tableBuku">
                     <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
