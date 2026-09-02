@@ -77,26 +77,44 @@ if (isset($_POST['hapus_semua_siswa_ajax'])) {
     exit;
 }
 
-// Aksi 4: Tambah Koleksi Buku
+// Aksi 4: Tambah Koleksi Buku Manual (Anti-Duplikat)
 if (isset($_POST['tambah_buku'])) {
-    $judul    = mysqli_real_escape_string($koneksi, trim($_POST['judul']));
-    $penulis  = mysqli_real_escape_string($koneksi, trim($_POST['penulis']));
-    $sinopsis = mysqli_real_escape_string($koneksi, trim($_POST['sinopsis']));
-    $nama_cover = 'default_cover.jpg';
-
+    $judul      = mysqli_real_escape_string($koneksi, trim($_POST['judul']));
+    $penulis    = mysqli_real_escape_string($koneksi, trim($_POST['penulis']));
+    $sinopsis   = mysqli_real_escape_string($koneksi, trim($_POST['sinopsis']));
+    
+    // Default cover
+    $cover_name = 'default_cover.jpg';
+    
+    // Cek jika ada upload gambar cover
     if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
-        $ext = pathinfo($_FILES['cover']['name'], PATHINFO_EXTENSION);
-        $nama_cover = time() . '_' . uniqid() . '.' . $ext;
-        move_uploaded_file($_FILES['cover']['tmp_name'], 'uploads/' . $nama_cover);
+        $ext = strtolower(pathinfo($_FILES['cover']['name'], PATHINFO_EXTENSION));
+        $new_name = time() . '_' . rand(100, 999) . '.' . $ext;
+        if (move_uploaded_file($_FILES['cover']['tmp_name'], 'uploads/' . $new_name)) {
+            $cover_name = $new_name;
+        }
     }
 
-    $sql = "INSERT INTO buku (judul, penulis, sinopsis, cover) VALUES ('$judul', '$penulis', '$sinopsis', '$nama_cover')";
-    if (mysqli_query($koneksi, $sql)) {
-        $msg = "Buku baru berhasil ditambahkan!";
+    // 1. Cek Duplikasi Data Buku di Database
+    $cek_buku = mysqli_query($koneksi, "SELECT * FROM buku WHERE judul = '$judul' AND penulis = '$penulis' AND sinopsis = '$sinopsis' AND cover = '$cover_name'");
+    
+    if (mysqli_num_rows($cek_buku) > 0) {
+        // Jika data sama persis sudah ada
+        $msg = "Gagal! Buku dengan data tersebut sudah terdaftar di sistem.";
+        $msg_type = 'error';
+    } else {
+        // Jika belum ada, lakukan insert
+        $sql = "INSERT INTO buku (judul, penulis, sinopsis, cover) VALUES ('$judul', '$penulis', '$sinopsis', '$cover_name')";
+        if (mysqli_query($koneksi, $sql)) {
+            $msg = "Buku baru berhasil ditambahkan!";
+        } else {
+            $msg = "Gagal menambahkan buku.";
+            $msg_type = 'error';
+        }
     }
 }
 
-// Aksi 4.5: Import Buku dari File CSV / Excel
+// Aksi 4.5: Import Buku dari File CSV / Excel (Anti-Duplikat)
 if (isset($_POST['import_buku'])) {
     if (isset($_FILES['file_excel']) && $_FILES['file_excel']['error'] === UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['file_excel']['tmp_name'];
@@ -105,40 +123,60 @@ if (isset($_POST['import_buku'])) {
         if (in_array($ext, ['csv', 'txt'])) {
             $handle = fopen($file_tmp, "r");
             $berhasil = 0;
+            $duplikat = 0;
             $baris = 0;
 
-            // 1. Deteksi Delimiter (Koma atau Titik Koma)
+            // Deteksi Delimiter (Koma, Titik Koma, atau Tab)
             $firstLine = fgets($handle);
-            $delimiter = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ',';
-            rewind($handle); // Kembali ke baris paling atas
+            $delimiter = ',';
+            if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) {
+                $delimiter = ';';
+            } elseif (substr_count($firstLine, "\t") > substr_count($firstLine, ',')) {
+                $delimiter = "\t";
+            }
+            rewind($handle);
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
                 $baris++;
-                
-                // Lewati baris 1 (Header Judul/Penulis/Sinopsis/Cover)
-                if ($baris == 1) continue;
+                if ($baris == 1) continue; // Lewati header tabel
 
-                // 2. Ambil & Bersihkan Data dari Karakter Aneh/Kutip
                 $judul      = isset($data[0]) ? mysqli_real_escape_string($koneksi, trim($data[0], " \t\n\r\0\x0B\"'")) : '';
                 $penulis    = isset($data[1]) ? mysqli_real_escape_string($koneksi, trim($data[1], " \t\n\r\0\x0B\"'")) : '';
                 $sinopsis   = isset($data[2]) ? mysqli_real_escape_string($koneksi, trim($data[2], " \t\n\r\0\x0B\"'")) : '';
-                $nama_cover = isset($data[3]) && !empty(trim($data[3])) ? mysqli_real_escape_string($koneksi, trim($data[3], " \t\n\r\0\x0B\"'")) : 'default_cover.jpg';
+                $nama_cover = (isset($data[3]) && !empty(trim($data[3]))) ? mysqli_real_escape_string($koneksi, trim($data[3], " \t\n\r\0\x0B\"'")) : 'default_cover.jpg';
 
-                // 3. Simpan ke database jika kolom Judul & Penulis tidak kosong
-                if (!empty($judul) && !empty($penulis)) {
-                    $sql = "INSERT INTO buku (judul, penulis, sinopsis, cover) VALUES ('$judul', '$penulis', '$sinopsis', '$nama_cover')";
-                    if (mysqli_query($koneksi, $sql)) {
-                        $berhasil++;
+                if (!empty($judul)) {
+                    // Cek Duplikasi ke Database sebelum INSERT
+                    $cek = mysqli_query($koneksi, "SELECT * FROM buku WHERE judul = '$judul' AND penulis = '$penulis' AND sinopsis = '$sinopsis' AND cover = '$nama_cover'");
+                    
+                    if (mysqli_num_rows($cek) == 0) {
+                        // Data belum ada -> Masukkan ke DB
+                        $sql = "INSERT INTO buku (judul, penulis, sinopsis, cover) VALUES ('$judul', '$penulis', '$sinopsis', '$nama_cover')";
+                        if (mysqli_query($koneksi, $sql)) {
+                            $berhasil++;
+                        }
+                    } else {
+                        // Data sama persis -> Lewati (Skip)
+                        $duplikat++;
                     }
                 }
             }
             fclose($handle);
 
+            // Respon Pesan SweetAlert
             if ($berhasil > 0) {
                 $msg = "Berhasil mengimpor $berhasil data buku dari file!";
+                if ($duplikat > 0) {
+                    $msg .= " ($duplikat buku dilewati karena sudah terdaftar)";
+                }
             } else {
-                $msg = "Gagal mengimpor data! Pastikan baris data di file CSV diisi dengan benar.";
-                $msg_type = 'error';
+                if ($duplikat > 0) {
+                    $msg = "Tidak ada data baru yang ditambahkan. Semua buku di file tersebut sudah terdaftar!";
+                    $msg_type = 'error';
+                } else {
+                    $msg = "Gagal mengimpor data! Pastikan baris data di file CSV terisi dengan benar.";
+                    $msg_type = 'error';
+                }
             }
         } else {
             $msg = "Format file tidak valid! Harap upload file .csv";
