@@ -120,14 +120,15 @@ if (isset($_POST['hapus_buku'])) {
     }
 }
 
-// Aksi 6.5: Hapus Semua Buku
-if (isset($_POST['hapus_semua_buku'])) {
+// Aksi 6.5: Hapus Semua Buku via AJAX
+if (isset($_POST['hapus_semua_buku_ajax'])) {
+    header('Content-Type: application/json');
     if (mysqli_query($koneksi, "DELETE FROM buku")) {
-        $msg = "Semua koleksi buku berhasil dihapus dari sistem!";
+        echo json_encode(['status' => 'success', 'message' => 'Semua koleksi buku berhasil dihapus!']);
     } else {
-        $msg = "Gagal menghapus beberapa/semua buku. Pastikan tidak ada buku yang sedang dipinjam.";
-        $msg_type = 'error';
+        echo json_encode(['status' => 'error', 'message' => 'Gagal menghapus buku. Pastikan tidak ada buku yang sedang dipinjam.']);
     }
+    exit;
 }
 
 // Aksi 7: Transaksi Pinjam Buku
@@ -188,14 +189,15 @@ if (isset($_POST['hapus_riwayat'])) {
     $msg = "Data riwayat berhasil dihapus!";
 }
 
-// Aksi 9.5: Hapus Semua Riwayat Peminjaman
-if (isset($_POST['hapus_semua_riwayat'])) {
+// Aksi 9.5: Hapus Semua Riwayat Peminjaman via AJAX
+if (isset($_POST['hapus_semua_riwayat_ajax'])) {
+    header('Content-Type: application/json');
     if (mysqli_query($koneksi, "DELETE FROM peminjaman WHERE status_transaksi = 'selesai'")) {
-        $msg = "Semua riwayat peminjaman berhasil dihapus!";
+        echo json_encode(['status' => 'success', 'message' => 'Semua riwayat peminjaman berhasil dihapus!']);
     } else {
-        $msg = "Gagal menghapus riwayat peminjaman.";
-        $msg_type = 'error';
+        echo json_encode(['status' => 'error', 'message' => 'Gagal menghapus riwayat peminjaman.']);
     }
+    exit;
 }
 
 // Aksi 10: Kirim Peringatan Notif ke Siswa
@@ -941,6 +943,134 @@ if (isset($_POST['kirim_peringatan'])) {
                     timer.innerHTML = `<span class="text-brand-teal bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-[10px] sm:text-xs font-mono font-bold">${days}h ${hours}j ${minutes}m ${seconds}s</span>`;
                 }
             });
+        }
+
+        // Konfirmasi & Hapus Semua Buku
+        function confirmHapusSemuaBuku(e) {
+            e.preventDefault();
+            
+            // 1. Alert Konfirmasi
+            Swal.fire({
+                title: 'HAPUS SEMUA BUKU?',
+                text: "Tindakan ini akan menghapus seluruh koleksi buku secara permanen!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#E11D48',
+                cancelButtonColor: '#64748B',
+                confirmButtonText: 'Ya, Hapus Semua!',
+                cancelButtonText: 'Batal',
+                customClass: { popup: 'rounded-3xl' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Loading indicator saat memproses
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Sedang menghapus data...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    // Kirim request ke PHP via Fetch/AJAX
+                    let formData = new FormData();
+                    formData.append('hapus_semua_buku_ajax', '1');
+
+                    fetch('admin_dashboard.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        // 2. Alert Berhasil / Gagal setelah eksekusi
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: data.message,
+                                confirmButtonColor: '#1B365D',
+                                customClass: { popup: 'rounded-3xl' }
+                            }).then(() => {
+                                location.reload(); // Refresh halaman setelah klik OK
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: data.message,
+                                confirmButtonColor: '#1B365D',
+                                customClass: { popup: 'rounded-3xl' }
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' });
+                    });
+                }
+            });
+            return false;
+        }
+
+        // Konfirmasi & Hapus Semua Riwayat Peminjaman
+        function confirmHapusSemuaRiwayat(e) {
+            e.preventDefault();
+            
+            // 1. Alert Konfirmasi
+            Swal.fire({
+                title: 'HAPUS SEMUA RIWAYAT?',
+                text: "Tindakan ini akan menghapus seluruh riwayat peminjaman secara permanen!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#E11D48',
+                cancelButtonColor: '#64748B',
+                confirmButtonText: 'Ya, Hapus Semua!',
+                cancelButtonText: 'Batal',
+                customClass: { popup: 'rounded-3xl' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Loading indicator saat memproses
+                    Swal.fire({
+                        title: 'Memproses...',
+                        text: 'Sedang menghapus riwayat...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    // Kirim request ke PHP via Fetch/AJAX
+                    let formData = new FormData();
+                    formData.append('hapus_semua_riwayat_ajax', '1');
+
+                    fetch('admin_dashboard.php', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        // 2. Alert Berhasil / Gagal setelah eksekusi
+                        if (data.status === 'success') {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: data.message,
+                                confirmButtonColor: '#1B365D',
+                                customClass: { popup: 'rounded-3xl' }
+                            }).then(() => {
+                                location.reload(); // Refresh halaman setelah klik OK
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: data.message,
+                                confirmButtonColor: '#1B365D',
+                                customClass: { popup: 'rounded-3xl' }
+                            });
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' });
+                    });
+                }
+            });
+            return false;
         }
 
         setInterval(updateCountdown, 1000);
