@@ -96,6 +96,60 @@ if (isset($_POST['tambah_buku'])) {
     }
 }
 
+// Aksi 4.5: Import Buku dari File CSV / Excel
+if (isset($_POST['import_buku'])) {
+    if (isset($_FILES['file_excel']) && $_FILES['file_excel']['error'] === UPLOAD_ERR_OK) {
+        $file_tmp = $_FILES['file_excel']['tmp_name'];
+        $ext = strtolower(pathinfo($_FILES['file_excel']['name'], PATHINFO_EXTENSION));
+
+        if (in_array($ext, ['csv', 'txt'])) {
+            $handle = fopen($file_tmp, "r");
+            $berhasil = 0;
+            $baris = 0;
+
+            // 1. Deteksi Delimiter (Koma atau Titik Koma)
+            $firstLine = fgets($handle);
+            $delimiter = (substr_count($firstLine, ';') > substr_count($firstLine, ',')) ? ';' : ',';
+            rewind($handle); // Kembali ke baris paling atas
+
+            while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
+                $baris++;
+                
+                // Lewati baris 1 (Header Judul/Penulis/Sinopsis/Cover)
+                if ($baris == 1) continue;
+
+                // 2. Ambil & Bersihkan Data dari Karakter Aneh/Kutip
+                $judul      = isset($data[0]) ? mysqli_real_escape_string($koneksi, trim($data[0], " \t\n\r\0\x0B\"'")) : '';
+                $penulis    = isset($data[1]) ? mysqli_real_escape_string($koneksi, trim($data[1], " \t\n\r\0\x0B\"'")) : '';
+                $sinopsis   = isset($data[2]) ? mysqli_real_escape_string($koneksi, trim($data[2], " \t\n\r\0\x0B\"'")) : '';
+                $nama_cover = isset($data[3]) && !empty(trim($data[3])) ? mysqli_real_escape_string($koneksi, trim($data[3], " \t\n\r\0\x0B\"'")) : 'default_cover.jpg';
+
+                // 3. Simpan ke database jika kolom Judul & Penulis tidak kosong
+                if (!empty($judul) && !empty($penulis)) {
+                    $sql = "INSERT INTO buku (judul, penulis, sinopsis, cover) VALUES ('$judul', '$penulis', '$sinopsis', '$nama_cover')";
+                    if (mysqli_query($koneksi, $sql)) {
+                        $berhasil++;
+                    }
+                }
+            }
+            fclose($handle);
+
+            if ($berhasil > 0) {
+                $msg = "Berhasil mengimpor $berhasil data buku dari file!";
+            } else {
+                $msg = "Gagal mengimpor data! Pastikan baris data di file CSV diisi dengan benar.";
+                $msg_type = 'error';
+            }
+        } else {
+            $msg = "Format file tidak valid! Harap upload file .csv";
+            $msg_type = 'error';
+        }
+    } else {
+        $msg = "Pilih file CSV terlebih dahulu!";
+        $msg_type = 'error';
+    }
+}
+
 // Aksi 5: Edit Buku
 if (isset($_POST['edit_buku'])) {
     $id_buku  = intval($_POST['id_buku']);
@@ -352,14 +406,16 @@ if (isset($_POST['kirim_peringatan'])) {
                 </div>
             </div>
 
-            <!-- 2. Form Tambah Buku -->
+            <!-- 2. Form Tambah Buku (Manual & Import Excel) -->
             <div id="form-buku-tab" class="form-tab-content hidden md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
                 <div>
                     <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
                         <span class="bg-brand-teal text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">2</span>
                         Tambah Koleksi Buku
                     </h3>
-                    <form action="" method="POST" enctype="multipart/form-data" class="space-y-3">
+                    
+                    <!-- Form 1: Tambah Buku Manual -->
+                    <form action="" method="POST" enctype="multipart/form-data" class="space-y-3 pb-4 border-b border-slate-100">
                         <div>
                             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Judul Buku:</label>
                             <input type="text" name="judul" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
@@ -376,7 +432,20 @@ if (isset($_POST['kirim_peringatan'])) {
                             <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cover Buku (JPG/PNG):</label>
                             <input type="file" name="cover" accept="image/*" class="w-full p-1 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none">
                         </div>
-                        <button type="submit" name="tambah_buku" class="w-full bg-brand-teal hover:bg-teal-600 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-teal/20 transition active:scale-[0.98] mt-2">Tambah Buku</button>
+                        <button type="submit" name="tambah_buku" class="w-full bg-brand-teal hover:bg-teal-600 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-teal/20 transition active:scale-[0.98]">
+                            + Tambah Buku Manual
+                        </button>
+                    </form>
+
+                    <!-- Form 2: Import dari File Excel (CSV) -->
+                    <form action="" method="POST" enctype="multipart/form-data" class="pt-4 space-y-2">
+                        <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                            📁 Atau Import Massal (Excel / CSV):
+                        </label>
+                        <input type="file" name="file_excel" accept=".csv" required class="w-full p-1 border border-emerald-200 rounded-xl text-xs bg-emerald-50/50 focus:outline-none">
+                        <button type="submit" name="import_buku" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition active:scale-[0.98] flex items-center justify-center gap-1">
+                            📊 Upload & Import Excel
+                        </button>
                     </form>
                 </div>
             </div>
