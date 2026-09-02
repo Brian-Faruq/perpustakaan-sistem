@@ -3,7 +3,7 @@ session_start();
 include 'koneksi.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'siswa') {
-    header("Location: login.php");
+    header("Location: index.php");
     exit;
 }
 
@@ -327,7 +327,7 @@ if (isset($_POST['hapus_notif'])) {
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = 'login.php';
+                    window.location.href = 'index.php';
                 }
             });
         }

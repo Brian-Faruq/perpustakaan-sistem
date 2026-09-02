@@ -4,7 +4,7 @@ include 'koneksi.php';
 
 // Proteksi Halaman Admin
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header("Location: login.php");
+    header("Location: index.php");
     exit;
 }
 
@@ -266,7 +266,7 @@ if (isset($_POST['kirim_peringatan'])) {
             <span class="hidden sm:inline text-xs sm:text-sm font-medium text-slate-200">
                 Petugas: <b class="text-white"><?= htmlspecialchars($_SESSION['nama']); ?></b>
             </span>
-            <a href="login.php" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3.5 py-1.5 rounded-xl font-bold shadow transition active:scale-95">
+            <a href="index.php" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3.5 py-1.5 rounded-xl font-bold shadow transition active:scale-95">
                 Logout
             </a>
         </div>
