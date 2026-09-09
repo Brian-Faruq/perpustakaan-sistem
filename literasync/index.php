@@ -1,0 +1,3 @@
+<?php
+echo "HALO! LITERASYNC SUDAH JALAN DI DAPUR YANG BENAR! 🔥";
+?>
