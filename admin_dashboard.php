@@ -11,6 +11,10 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
 $msg = '';
 $msg_type = 'success';
 
+// ---------------------------------------------------------
+// LOGIK PHP (BACKEND SAMA PERSIS TERJAGA)
+// ---------------------------------------------------------
+
 // Aksi 1: Registrasi Siswa Baru
 if (isset($_POST['tambah_siswa'])) {
     $nomor_kartu = mysqli_real_escape_string($koneksi, trim($_POST['nomor_kartu']));
@@ -33,7 +37,7 @@ if (isset($_POST['tambah_siswa'])) {
     }
 }
 
-// Aksi 1.5: Import Siswa dari File CSV / Excel (Anti-Duplikat & Default Password)
+// Aksi 1.5: Import Siswa
 if (isset($_POST['import_siswa'])) {
     if (isset($_FILES['file_excel_siswa']) && $_FILES['file_excel_siswa']['error'] === UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['file_excel_siswa']['tmp_name'];
@@ -45,7 +49,6 @@ if (isset($_POST['import_siswa'])) {
             $duplikat = 0;
             $baris = 0;
 
-            // Deteksi Delimiter (Koma, Titik Koma, atau Tab)
             $firstLine = fgets($handle);
             $delimiter = ',';
             if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) {
@@ -57,21 +60,16 @@ if (isset($_POST['import_siswa'])) {
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
                 $baris++;
-                if ($baris == 1) continue; // Lewati header tabel
+                if ($baris == 1) continue;
 
-                // Format Kolom CSV: [0] Nomor Kartu, [1] Nama, [2] Kelas, [3] Password (Opsional)
                 $nomor_kartu = isset($data[0]) ? mysqli_real_escape_string($koneksi, trim($data[0], " \t\n\r\0\x0B\"'")) : '';
                 $nama        = isset($data[1]) ? mysqli_real_escape_string($koneksi, trim($data[1], " \t\n\r\0\x0B\"'")) : '';
                 $kelas       = isset($data[2]) ? mysqli_real_escape_string($koneksi, trim($data[2], " \t\n\r\0\x0B\"'")) : '';
-                
-                // Jika password di CSV kosong, gunakan default '123456'
                 $raw_pass    = (isset($data[3]) && !empty(trim($data[3]))) ? trim($data[3], " \t\n\r\0\x0B\"'") : '123456';
                 $pass_hash   = password_hash($raw_pass, PASSWORD_DEFAULT);
 
                 if (!empty($nomor_kartu) && !empty($nama)) {
-                    // Cek Duplikasi Nomor Kartu
                     $cek = mysqli_query($koneksi, "SELECT id FROM siswa WHERE nomor_kartu = '$nomor_kartu'");
-                    
                     if (mysqli_num_rows($cek) == 0) {
                         $sql = "INSERT INTO siswa (nomor_kartu, nama, kelas, password) VALUES ('$nomor_kartu', '$nama', '$kelas', '$pass_hash')";
                         if (mysqli_query($koneksi, $sql)) {
@@ -84,20 +82,14 @@ if (isset($_POST['import_siswa'])) {
             }
             fclose($handle);
 
-            // Respon Pesan SweetAlert
             if ($berhasil > 0) {
                 $msg = "Berhasil mengimpor $berhasil data siswa dari file!";
                 if ($duplikat > 0) {
                     $msg .= " ($duplikat siswa dilewati karena nomor kartu sudah terdaftar)";
                 }
             } else {
-                if ($duplikat > 0) {
-                    $msg = "Tidak ada data siswa baru yang ditambahkan. Semua nomor kartu sudah terdaftar!";
-                    $msg_type = 'error';
-                } else {
-                    $msg = "Gagal mengimpor data! Pastikan baris data di file CSV terisi dengan benar.";
-                    $msg_type = 'error';
-                }
+                $msg = ($duplikat > 0) ? "Tidak ada data siswa baru yang ditambahkan." : "Gagal mengimpor data! Pastikan file CSV terisi dengan benar.";
+                $msg_type = 'error';
             }
         } else {
             $msg = "Format file tidak valid! Harap upload file .csv";
@@ -153,16 +145,13 @@ if (isset($_POST['hapus_semua_siswa_ajax'])) {
     exit;
 }
 
-// Aksi 4: Tambah Koleksi Buku Manual (Anti-Duplikat)
+// Aksi 4: Tambah Buku Manual
 if (isset($_POST['tambah_buku'])) {
     $judul      = mysqli_real_escape_string($koneksi, trim($_POST['judul']));
     $penulis    = mysqli_real_escape_string($koneksi, trim($_POST['penulis']));
     $sinopsis   = mysqli_real_escape_string($koneksi, trim($_POST['sinopsis']));
-    
-    // Default cover
     $cover_name = 'default_cover.jpg';
     
-    // Cek jika ada upload gambar cover
     if (isset($_FILES['cover']) && $_FILES['cover']['error'] === UPLOAD_ERR_OK) {
         $ext = strtolower(pathinfo($_FILES['cover']['name'], PATHINFO_EXTENSION));
         $new_name = time() . '_' . rand(100, 999) . '.' . $ext;
@@ -171,15 +160,11 @@ if (isset($_POST['tambah_buku'])) {
         }
     }
 
-    // 1. Cek Duplikasi Data Buku di Database
     $cek_buku = mysqli_query($koneksi, "SELECT * FROM buku WHERE judul = '$judul' AND penulis = '$penulis' AND sinopsis = '$sinopsis' AND cover = '$cover_name'");
-    
     if (mysqli_num_rows($cek_buku) > 0) {
-        // Jika data sama persis sudah ada
         $msg = "Gagal! Buku dengan data tersebut sudah terdaftar di sistem.";
         $msg_type = 'error';
     } else {
-        // Jika belum ada, lakukan insert
         $sql = "INSERT INTO buku (judul, penulis, sinopsis, cover) VALUES ('$judul', '$penulis', '$sinopsis', '$cover_name')";
         if (mysqli_query($koneksi, $sql)) {
             $msg = "Buku baru berhasil ditambahkan!";
@@ -190,7 +175,7 @@ if (isset($_POST['tambah_buku'])) {
     }
 }
 
-// Aksi 4.5: Import Buku dari File CSV / Excel (Anti-Duplikat)
+// Aksi 4.5: Import Buku
 if (isset($_POST['import_buku'])) {
     if (isset($_FILES['file_excel']) && $_FILES['file_excel']['error'] === UPLOAD_ERR_OK) {
         $file_tmp = $_FILES['file_excel']['tmp_name'];
@@ -202,7 +187,6 @@ if (isset($_POST['import_buku'])) {
             $duplikat = 0;
             $baris = 0;
 
-            // Deteksi Delimiter (Koma, Titik Koma, atau Tab)
             $firstLine = fgets($handle);
             $delimiter = ',';
             if (substr_count($firstLine, ';') > substr_count($firstLine, ',')) {
@@ -214,7 +198,7 @@ if (isset($_POST['import_buku'])) {
 
             while (($data = fgetcsv($handle, 1000, $delimiter)) !== FALSE) {
                 $baris++;
-                if ($baris == 1) continue; // Lewati header tabel
+                if ($baris == 1) continue;
 
                 $judul      = isset($data[0]) ? mysqli_real_escape_string($koneksi, trim($data[0], " \t\n\r\0\x0B\"'")) : '';
                 $penulis    = isset($data[1]) ? mysqli_real_escape_string($koneksi, trim($data[1], " \t\n\r\0\x0B\"'")) : '';
@@ -222,37 +206,27 @@ if (isset($_POST['import_buku'])) {
                 $nama_cover = (isset($data[3]) && !empty(trim($data[3]))) ? mysqli_real_escape_string($koneksi, trim($data[3], " \t\n\r\0\x0B\"'")) : 'default_cover.jpg';
 
                 if (!empty($judul)) {
-                    // Cek Duplikasi ke Database sebelum INSERT
                     $cek = mysqli_query($koneksi, "SELECT * FROM buku WHERE judul = '$judul' AND penulis = '$penulis' AND sinopsis = '$sinopsis' AND cover = '$nama_cover'");
-                    
                     if (mysqli_num_rows($cek) == 0) {
-                        // Data belum ada -> Masukkan ke DB
                         $sql = "INSERT INTO buku (judul, penulis, sinopsis, cover) VALUES ('$judul', '$penulis', '$sinopsis', '$nama_cover')";
                         if (mysqli_query($koneksi, $sql)) {
                             $berhasil++;
                         }
                     } else {
-                        // Data sama persis -> Lewati (Skip)
                         $duplikat++;
                     }
                 }
             }
             fclose($handle);
 
-            // Respon Pesan SweetAlert
             if ($berhasil > 0) {
                 $msg = "Berhasil mengimpor $berhasil data buku dari file!";
                 if ($duplikat > 0) {
                     $msg .= " ($duplikat buku dilewati karena sudah terdaftar)";
                 }
             } else {
-                if ($duplikat > 0) {
-                    $msg = "Tidak ada data baru yang ditambahkan. Semua buku di file tersebut sudah terdaftar!";
-                    $msg_type = 'error';
-                } else {
-                    $msg = "Gagal mengimpor data! Pastikan baris data di file CSV terisi dengan benar.";
-                    $msg_type = 'error';
-                }
+                $msg = ($duplikat > 0) ? "Tidak ada data baru yang ditambahkan." : "Gagal mengimpor data! Pastikan file CSV terisi dengan benar.";
+                $msg_type = 'error';
             }
         } else {
             $msg = "Format file tidak valid! Harap upload file .csv";
@@ -316,7 +290,6 @@ if (isset($_POST['pinjam_buku'])) {
     $buku_id     = intval($_POST['buku_id']);
     $durasi_hari = isset($_POST['durasi_hari']) ? intval($_POST['durasi_hari']) : 3;
     $tgl_pinjam  = date('Y-m-d');
-
     $tgl_jatuh_tempo = date('Y-m-d', strtotime("+$durasi_hari days", strtotime($tgl_pinjam)));
 
     $q_siswa = mysqli_query($koneksi, "SELECT id, nama FROM siswa WHERE nomor_kartu='$nomor_kartu'");
@@ -407,7 +380,7 @@ if (isset($_POST['kirim_peringatan'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Perpustakaan - Sekolah Impian</title>
+    <title>Admin Dashboard - LiteraSync</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
@@ -444,496 +417,548 @@ if (isset($_POST['kirim_peringatan'])) {
             height: 40px !important;
             right: 8px !important;
         }
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-brand-lightBg text-slate-800 min-h-screen">
+<body class="bg-brand-lightBg text-slate-800 flex min-h-screen overflow-x-hidden">
 
-    <!-- NAVBAR HEADER CLEAN UNTUK MOBILE -->
-    <nav class="bg-brand-navy text-white px-4 sm:px-6 py-3 flex justify-between items-center shadow-md sticky top-0 z-30">
-        <div class="flex items-center gap-2">
-            <h1 class="font-black text-base sm:text-xl tracking-wide bg-gradient-to-r from-brand-amber to-brand-orange bg-clip-text text-transparent uppercase">
-                PERPUSTAKAAN
-            </h1>
-            <span class="hidden sm:inline-block text-xs bg-brand-teal/20 text-brand-teal px-2 py-0.5 rounded font-bold uppercase tracking-wider">Admin</span>
+    <!-- ========================================== -->
+    <!-- SIDEBAR LEFT NAVIGATION                    -->
+    <!-- ========================================== -->
+    <aside class="w-64 bg-brand-navy text-white flex flex-col justify-between p-5 fixed top-0 bottom-0 left-0 z-40 shadow-2xl">
+        <div class="space-y-6">
+            
+            <!-- HEADER: LOGO & TITLE BERSAMPINGAN -->
+            <div class="flex items-center gap-3 pb-4 border-b border-slate-700/60">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-orange to-brand-amber flex items-center justify-center text-white font-black text-xl shadow-lg shadow-brand-orange/30 shrink-0">
+                    📚
+                </div>
+                <div>
+                    <h1 class="font-black text-lg tracking-wide uppercase bg-gradient-to-r from-brand-amber to-brand-orange bg-clip-text text-transparent leading-none">
+                        PERPUSTAKAAN
+                    </h1>
+                    <p class="text-[10px] text-slate-400 font-medium tracking-wider mt-0.5">ADMIN PANEL</p>
+                </div>
+            </div>
+
+            <!-- PROFIL PETUGAS RINGKAS -->
+            <div class="bg-slate-800/60 border border-slate-700/50 rounded-2xl p-3 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-full bg-brand-teal flex items-center justify-center font-bold text-xs text-white">
+                    <?= strtoupper(substr($_SESSION['nama'], 0, 1)); ?>
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider leading-none">Petugas Admin</p>
+                    <p class="text-xs font-bold text-white truncate mt-0.5"><?= htmlspecialchars($_SESSION['nama']); ?></p>
+                </div>
+            </div>
+
+            <!-- MENU UTAMA SIDEBAR (ORDERED LIST <ol>) -->
+            <nav>
+                <ol class="space-y-1 text-sm font-semibold">
+                    
+                    <!-- 1. MENU TAMBAH DATA (DROPDOWN / SUBMENU) -->
+                    <li>
+                        <button onclick="toggleSubmenu('submenu-tambah-data')" class="w-full flex items-center justify-between p-3 rounded-2xl hover:bg-slate-800/80 text-slate-300 hover:text-white transition">
+                            <span class="flex items-center gap-2.5">
+                                <span class="text-base">➕</span> 1. Tambah Data
+                            </span>
+                            <span id="arrow-tambah" class="text-xs transition-transform duration-200">▼</span>
+                        </button>
+                        <div id="submenu-tambah-data" class="hidden pl-6 pt-1 space-y-1">
+                            <button onclick="switchMainView('view-tambah-siswa', this)" class="sub-nav-btn w-full text-left py-2 px-3 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+                                <span>👨‍🎓</span> Tambah Siswa
+                            </button>
+                            <button onclick="switchMainView('view-tambah-buku', this)" class="sub-nav-btn w-full text-left py-2 px-3 rounded-xl text-xs text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-2">
+                                <span>📖</span> Tambah Buku
+                            </button>
+                        </div>
+                    </li>
+
+                    <!-- 2. MENU PEMINJAMAN (FORM PINJAM & TABEL AKTIF) -->
+                    <li>
+                        <button onclick="switchMainView('view-peminjaman', this)" class="nav-btn active-nav w-full flex items-center gap-2.5 p-3 rounded-2xl bg-brand-orange text-white font-bold shadow-lg shadow-brand-orange/20 transition">
+                            <span class="text-base">🔄</span> 2. Peminjaman
+                        </button>
+                    </li>
+
+                    <!-- 3. MENU DATA (TABEL LAINNYA: RIWAYAT, SISWA, BUKU) -->
+                    <li>
+                        <button onclick="switchMainView('view-data-master', this)" class="nav-btn w-full flex items-center gap-2.5 p-3 rounded-2xl hover:bg-slate-800/80 text-slate-300 hover:text-white transition">
+                            <span class="text-base">📊</span> 3. Data Master
+                        </button>
+                    </li>
+
+                </ol>
+            </nav>
         </div>
-        <div class="flex items-center gap-3">
-            <span class="hidden sm:inline text-xs sm:text-sm font-medium text-slate-200">
-                Petugas: <b class="text-white"><?= htmlspecialchars($_SESSION['nama']); ?></b>
-            </span>
-            <a href="index.php" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3.5 py-1.5 rounded-xl font-bold shadow transition active:scale-95">
-                Logout
+
+        <!-- LOGOUT BUTTON DI PALING UJUNG BAWAH SIDEBAR -->
+        <div class="pt-4 border-t border-slate-700/60">
+            <a href="index.php" class="w-full bg-rose-500/10 border border-rose-500/30 hover:bg-rose-600 text-rose-300 hover:text-white p-3 rounded-2xl font-bold text-xs flex items-center justify-center gap-2 transition active:scale-95 shadow-md">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                </svg>
+                Keluar / Logout
             </a>
         </div>
-    </nav>
+    </aside>
 
-    <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-6">
+    <!-- ========================================== -->
+    <!-- MAIN CONTENT AREA                          -->
+    <!-- ========================================== -->
+    <main class="ml-64 flex-grow p-6 sm:p-8 min-h-screen">
 
-        <!-- TAB SELECTION FORM UNTUK MOBILE (DEFAULT AKTIF TAB 3: TRANSAKSI PINJAM) -->
-        <div class="md:hidden flex overflow-x-auto no-scrollbar gap-2 pb-1">
-            <button onclick="switchFormTab('form-pinjam-tab', this)" class="form-tab-btn shrink-0 bg-brand-navy text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition">
-                1. Transaksi Pinjam
-            </button>
-            <button onclick="switchFormTab('form-reg-tab', this)" class="form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition">
-                2. Registrasi Siswa
-            </button>
-            <button onclick="switchFormTab('form-buku-tab', this)" class="form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition">
-                3. Tambah Buku
-            </button>
-        </div>
-
-        <!-- CONTAINER FORM CONTROL PANEL -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-
-            <!-- 1. Form Registrasi Siswa (Manual & Import Excel) -->
-            <div id="form-reg-tab" class="form-tab-content hidden md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
-                        <span class="bg-brand-orange text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">1</span>
-                        Registrasi Siswa (Tap Kartu)
-                    </h3>
-                    
-                    <!-- Form 1: Input Siswa Manual -->
-                    <form action="" method="POST" class="space-y-3 pb-4 border-b border-slate-100">
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nomor Kartu (Tap di sini):</label>
-                            <input type="text" name="nomor_kartu" required placeholder="Tap kartu siswa..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
-                        </div>
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nama Siswa:</label>
-                            <input type="text" name="nama" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
-                        </div>
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Kelas:</label>
-                            <input type="text" name="kelas" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
-                        </div>
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Password Akun Siswa:</label>
-                            <input type="password" name="password" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
-                        </div>
-                        <button type="submit" name="tambah_siswa" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-orange/20 transition active:scale-[0.98]">
-                            Simpan Data Siswa
-                        </button>
-                    </form>
-
-                    <!-- Form 2: Import Siswa dari File Excel (CSV) -->
-                    <form action="" method="POST" enctype="multipart/form-data" class="pt-4 space-y-2">
-                        <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                            📁 Atau Import Massal (Excel / CSV):
-                        </label>
-                        <input type="file" name="file_excel_siswa" accept=".csv" required class="w-full p-1 border border-emerald-200 rounded-xl text-xs bg-emerald-50/50 focus:outline-none">
-                        <button type="submit" name="import_siswa" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition active:scale-[0.98] flex items-center justify-center gap-1">
-                            📊 Upload & Import Excel
-                        </button>
-                    </form>
+        <!-- --------------------------------------- -->
+        <!-- VIEW 2: PEMINJAMAN (DEFAULT ACTIVE)     -->
+        <!-- --------------------------------------- -->
+        <div id="view-peminjaman" class="main-view-section space-y-6">
+            
+            <!-- BAGIAN ATAS: FORM TRANSAKSI PINJAM BUKU -->
+            <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100 max-w-4xl mx-auto">
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-xl bg-brand-navy/10 text-brand-navy flex items-center justify-center font-bold text-sm">
+                        📌
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-brand-navy">Form Transaksi Pinjam Buku</h2>
+                        <p class="text-xs text-slate-400">Scan/Tap kartu siswa & pilih buku yang akan dipinjam</p>
+                    </div>
                 </div>
+
+                <form action="" method="POST" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Tap Kartu Peminjam:</label>
+                        <input type="text" id="input_nomor_kartu_pinjam" name="nomor_kartu_pinjam" required autofocus placeholder="Tap kartu siswa di sini..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pilih Buku (Tersedia):</label>
+                        <select name="buku_id" class="select2-buku w-full" required>
+                            <option value="">-- Pilih Buku --</option>
+                            <?php
+                            $q_buku = mysqli_query($koneksi, "SELECT * FROM buku WHERE status = 'tersedia' ORDER BY judul ASC");
+                            while ($b = mysqli_fetch_assoc($q_buku)) {
+                                echo "<option value='".$b['id']."'>".htmlspecialchars($b['judul'])." - ".$b['penulis']."</option>";
+                            }
+                            ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Durasi Peminjaman:</label>
+                        <select name="durasi_hari" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
+                            <?php for ($i = 1; $i <= 7; $i++): ?>
+                                <option value="<?= $i; ?>" <?= $i === 3 ? 'selected' : ''; ?>><?= $i; ?> Hari</option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div class="md:col-span-3 pt-2">
+                        <button type="submit" name="pinjam_buku" class="w-full bg-brand-navy hover:bg-slate-800 text-white py-3 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-navy/20 transition active:scale-[0.98] flex items-center justify-center gap-2">
+                            <span>✅</span> Proces & Simpan Peminjaman
+                        </button>
+                    </div>
+                </form>
             </div>
 
-            <!-- 2. Form Tambah Buku (Manual & Import Excel) -->
-            <div id="form-buku-tab" class="form-tab-content hidden md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
-                        <span class="bg-brand-teal text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">2</span>
-                        Tambah Koleksi Buku
-                    </h3>
-                    
-                    <!-- Form 1: Tambah Buku Manual -->
-                    <form action="" method="POST" enctype="multipart/form-data" class="space-y-3 pb-4 border-b border-slate-100">
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Judul Buku:</label>
-                            <input type="text" name="judul" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
-                        </div>
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Penulis:</label>
-                            <input type="text" name="penulis" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
-                        </div>
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Sinopsis Singkat:</label>
-                            <textarea name="sinopsis" rows="2" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition"></textarea>
-                        </div>
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Cover Buku (JPG/PNG):</label>
-                            <input type="file" name="cover" accept="image/*" class="w-full p-1 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none">
-                        </div>
-                        <button type="submit" name="tambah_buku" class="w-full bg-brand-teal hover:bg-teal-600 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-teal/20 transition active:scale-[0.98]">
-                            + Tambah Buku Manual
-                        </button>
-                    </form>
+            <!-- BAGIAN BAWAH: TABEL PEMINJAMAN AKTIF -->
+            <div class="bg-white rounded-3xl shadow-xl p-6 border border-slate-100 max-w-4xl mx-auto">
+                <?php
+                $q_peminjaman = mysqli_query($koneksi, "
+                    SELECT p.id AS id_pinjam, s.nama, s.kelas, s.nomor_kartu, b.judul, p.tanggal_pinjam, p.durasi_hari, p.tanggal_jatuh_tempo 
+                    FROM peminjaman p
+                    JOIN siswa s ON p.siswa_id = s.id
+                    JOIN buku b ON p.buku_id = b.id
+                    WHERE p.status_transaksi = 'berjalan'
+                    ORDER BY p.tanggal_pinjam DESC
+                ");
+                $total_pinjam = mysqli_num_rows($q_peminjaman);
+                ?>
 
-                    <!-- Form 2: Import dari File Excel (CSV) -->
-                    <form action="" method="POST" enctype="multipart/form-data" class="pt-4 space-y-2">
-                        <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
-                            📁 Atau Import Massal (Excel / CSV):
-                        </label>
-                        <input type="file" name="file_excel" accept=".csv" required class="w-full p-1 border border-emerald-200 rounded-xl text-xs bg-emerald-50/50 focus:outline-none">
-                        <button type="submit" name="import_buku" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition active:scale-[0.98] flex items-center justify-center gap-1">
-                            📊 Upload & Import Excel
-                        </button>
-                    </form>
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                    <div>
+                        <h2 class="text-base sm:text-lg font-bold text-brand-navy">Tabel Peminjaman Aktif</h2>
+                        <p class="text-xs text-slate-400">Daftar peminjaman yang sedang berlangsung</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari kartu / nama..." autocomplete="off" class="border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
+                        <span class="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
+                            Total: <?= $total_pinjam; ?>
+                        </span>
+                    </div>
                 </div>
-            </div>
 
-            <!-- 3. Form Transaksi Pinjam Buku (DEFAULT DISPLAY MOBILE & AUTOFOCUS FOCUS) -->
-            <div id="form-pinjam-tab" class="form-tab-content block md:block bg-white p-5 rounded-3xl shadow-lg border border-slate-100 flex flex-col justify-between">
-                <div>
-                    <h3 class="font-bold text-sm sm:text-base mb-3 text-brand-navy flex items-center gap-2">
-                        <span class="bg-brand-navy text-white text-xs w-6 h-6 rounded-full flex items-center justify-center font-bold">3</span>
-                        Transaksi Pinjam Buku
-                    </h3>
-                    <form action="" method="POST" class="space-y-3">
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Tap Kartu Peminjam:</label>
-                            <input type="text" id="input_nomor_kartu_pinjam" name="nomor_kartu_pinjam" required autofocus placeholder="Tap kartu siswa..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pilih Buku (Tersedia):</label>
-                            <select name="buku_id" class="select2-buku w-full" required>
-                                <option value="">-- Pilih Buku --</option>
-                                <?php
-                                $q_buku = mysqli_query($koneksi, "SELECT * FROM buku WHERE status = 'tersedia' ORDER BY judul ASC");
-                                while ($b = mysqli_fetch_assoc($q_buku)) {
-                                    echo "<option value='".$b['id']."'>".htmlspecialchars($b['judul'])." - ".$b['penulis']."</option>";
-                                }
-                                ?>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Durasi Peminjaman (Hari):</label>
-                            <select name="durasi_hari" class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
-                                <?php for ($i = 1; $i <= 7; $i++): ?>
-                                    <option value="<?= $i; ?>" <?= $i === 3 ? 'selected' : ''; ?>><?= $i; ?> Hari</option>
-                                <?php endfor; ?>
-                            </select>
-                        </div>
-                        <button type="submit" name="pinjam_buku" class="w-full bg-brand-navy hover:bg-slate-800 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-navy/20 transition active:scale-[0.98] mt-2">Proses Peminjaman</button>
-                    </form>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- TABEL KONTROL DATA PERPUSTAKAAN -->
-        <div class="flex overflow-x-auto no-scrollbar gap-2 sm:gap-3 border-b border-slate-200 pb-3 -mx-4 px-4 sm:mx-0 sm:px-0">
-            <button onclick="openTab('pinjam-tab', this)" class="tab-btn shrink-0 bg-brand-navy text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition">
-                📋 Peminjaman Aktif
-            </button>
-            <button onclick="openTab('riwayat-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
-                📜 Riwayat Peminjaman
-            </button>
-            <button onclick="openTab('siswa-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
-                👨‍🎓 Daftar Siswa
-            </button>
-            <button onclick="openTab('buku-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
-                📚 Daftar Buku
-            </button>
-        </div>
-
-        <!-- TABEL DATA PEMINJAMAN AKTIF -->
-        <div id="pinjam-tab" class="tab-content bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
-            <?php
-            $q_peminjaman = mysqli_query($koneksi, "
-                SELECT p.id AS id_pinjam, s.nama, s.kelas, s.nomor_kartu, b.judul, p.tanggal_pinjam, p.durasi_hari, p.tanggal_jatuh_tempo 
-                FROM peminjaman p
-                JOIN siswa s ON p.siswa_id = s.id
-                JOIN buku b ON p.buku_id = b.id
-                WHERE p.status_transaksi = 'berjalan'
-                ORDER BY p.tanggal_pinjam DESC
-            ");
-            $total_pinjam = mysqli_num_rows($q_peminjaman);
-            ?>
-
-            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
-                <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Peminjaman Aktif</h2>
-                <div class="flex items-center gap-2">
-                    <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari siswa..." autocomplete="off" class="border border-slate-200 rounded-xl px-3 py-1.5 sm:py-2 text-xs sm:text-sm w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
-                    <span class="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-xs font-black px-3 py-1.5 sm:py-2 rounded-xl whitespace-nowrap">
-                        Total: <?= $total_pinjam; ?>
-                    </span>
-                </div>
-            </div>
-
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs sm:text-sm">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
-                        <tr>
-                            <th class="p-3 rounded-l-xl">Nama Siswa</th>
-                            <th class="p-3">Kelas</th>
-                            <th class="p-3">Judul Buku</th>
-                            <th class="p-3">Tanggal Pinjam</th>
-                            <th class="p-3">Target Durasi</th>
-                            <th class="p-3">Sisa Waktu</th>
-                            <th class="p-3 text-center rounded-r-xl">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php
-                        if ($total_pinjam > 0):
-                            while ($p = mysqli_fetch_assoc($q_peminjaman)):
-                        ?>
-                            <tr class="row-peminjaman hover:bg-slate-50 transition" data-kartu="<?= htmlspecialchars($p['nomor_kartu']); ?>" data-nama="<?= htmlspecialchars($p['nama']); ?>">
-                                <td class="p-3 font-semibold text-slate-800 cell-nama"><?= $p['nama']; ?></td>
-                                <td class="p-3 text-slate-600"><?= $p['kelas']; ?></td>
-                                <td class="p-3 text-slate-700 font-medium"><?= $p['judul']; ?></td>
-                                <td class="p-3 text-slate-500 whitespace-nowrap"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
-                                <td class="p-3 text-slate-500 whitespace-nowrap"><?= $p['durasi_hari']; ?> Hari</td>
-                                <td class="p-3 font-semibold whitespace-nowrap">
-                                    <span class="countdown-timer" data-target="<?= $p['tanggal_jatuh_tempo']; ?> 23:59:59">Memuat...</span>
-                                </td>
-                                <td class="p-3 text-center flex justify-center items-center gap-1.5">
-                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin kembalikan buku ini?', this);">
-                                        <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
-                                        <input type="hidden" name="kembalikan_buku" value="1">
-                                        <button type="submit" class="bg-brand-teal hover:bg-teal-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
-                                            Kembalikan
-                                        </button>
-                                    </form>
-                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Kirim notifikasi peringatan pengembalian ke siswa ini?', this);">
-                                        <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
-                                        <input type="hidden" name="kirim_peringatan" value="1">
-                                        <button type="submit" class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition flex items-center gap-1">
-                                            ⚠️ <span class="hidden sm:inline">Peringatkan</span>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php 
-                            endwhile;
-                        else: 
-                        ?>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
                             <tr>
-                                <td colspan="7" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Tidak ada peminjaman aktif saat ini.</td>
+                                <th class="p-3 rounded-l-xl">Nama Siswa</th>
+                                <th class="p-3">Kelas</th>
+                                <th class="p-3">Judul Buku</th>
+                                <th class="p-3">Tgl Pinjam</th>
+                                <th class="p-3">Target</th>
+                                <th class="p-3">Sisa Waktu</th>
+                                <th class="p-3 text-center rounded-r-xl">Aksi</th>
                             </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TABEL RIWAYAT PEMINJAMAN -->
-        <div id="riwayat-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
-            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
-                <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Riwayat Peminjaman</h2>
-                <div class="flex items-center gap-2">
-                    <!-- Tombol Hapus Semua Riwayat (Sebelah Kiri Pencarian) -->
-                    <form action="" method="POST" id="formHapusSemuaRiwayat" onsubmit="return confirmHapusSemuaRiwayat(event, this);">
-                        <input type="hidden" name="hapus_semua_riwayat" value="1">
-                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
-                            🗑️ Hapus Semua
-                        </button>
-                    </form>
-
-                    <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php if ($total_pinjam > 0): while ($p = mysqli_fetch_assoc($q_peminjaman)): ?>
+                                <tr class="row-peminjaman hover:bg-slate-50 transition" data-kartu="<?= htmlspecialchars($p['nomor_kartu']); ?>" data-nama="<?= htmlspecialchars($p['nama']); ?>">
+                                    <td class="p-3 font-semibold text-slate-800 cell-nama"><?= $p['nama']; ?></td>
+                                    <td class="p-3 text-slate-600"><?= $p['kelas']; ?></td>
+                                    <td class="p-3 text-slate-700 font-medium"><?= $p['judul']; ?></td>
+                                    <td class="p-3 text-slate-500 whitespace-nowrap"><?= date('d-m-Y', strtotime($p['tanggal_pinjam'])); ?></td>
+                                    <td class="p-3 text-slate-500 whitespace-nowrap"><?= $p['durasi_hari']; ?> Hari</td>
+                                    <td class="p-3 font-semibold whitespace-nowrap">
+                                        <span class="countdown-timer" data-target="<?= $p['tanggal_jatuh_tempo']; ?> 23:59:59">Memuat...</span>
+                                    </td>
+                                    <td class="p-3 text-center flex justify-center items-center gap-1.5">
+                                        <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin kembalikan buku ini?', this);">
+                                            <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
+                                            <input type="hidden" name="kembalikan_buku" value="1">
+                                            <button type="submit" class="bg-brand-teal hover:bg-teal-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition">
+                                                Kembalikan
+                                            </button>
+                                        </form>
+                                        <form action="" method="POST" onsubmit="return confirmAction(event, 'Kirim notifikasi peringatan pengembalian ke siswa ini?', this);">
+                                            <input type="hidden" name="id_peminjaman" value="<?= $p['id_pinjam']; ?>">
+                                            <input type="hidden" name="kirim_peringatan" value="1">
+                                            <button type="submit" class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition flex items-center gap-1">
+                                                ⚠️ <span>Peringatkan</span>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endwhile; else: ?>
+                                <tr>
+                                    <td colspan="7" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Tidak ada peminjaman aktif saat ini.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs sm:text-sm" id="tableRiwayat">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
-                        <tr>
-                            <th class="p-3 rounded-l-xl">Nama Siswa</th>
-                            <th class="p-3">Kelas</th>
-                            <th class="p-3">Judul Buku</th>
-                            <th class="p-3">Tanggal Pinjam</th>
-                            <th class="p-3">Tanggal Kembali</th>
-                            <th class="p-3 text-center rounded-r-xl">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php
-                        $q_riwayat = mysqli_query($koneksi, "
-                            SELECT p.id AS id_riwayat, s.nama, s.kelas, b.judul, p.tanggal_pinjam, p.tanggal_kembali 
-                            FROM peminjaman p
-                            JOIN siswa s ON p.siswa_id = s.id
-                            JOIN buku b ON p.buku_id = b.id
-                            WHERE p.status_transaksi = 'selesai'
-                            ORDER BY p.tanggal_kembali DESC
-                        ");
+        </div>
 
-                        if (mysqli_num_rows($q_riwayat) > 0):
-                            while ($r = mysqli_fetch_assoc($q_riwayat)):
-                        ?>
-                            <tr class="row-riwayat hover:bg-slate-50 transition">
-                                <td class="p-3 font-semibold text-slate-800 cell-nama-riwayat"><?= $r['nama']; ?></td>
-                                <td class="p-3 text-slate-600"><?= $r['kelas']; ?></td>
-                                <td class="p-3 text-slate-700 font-medium"><?= $r['judul']; ?></td>
-                                <td class="p-3 text-slate-500 whitespace-nowrap"><?= date('d-m-Y', strtotime($r['tanggal_pinjam'])); ?></td>
-                                <td class="p-3 text-brand-teal font-bold whitespace-nowrap"><?= date('d-m-Y', strtotime($r['tanggal_kembali'])); ?></td>
-                                <td class="p-3 text-center">
-                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin hapus riwayat ini?', this);">
-                                        <input type="hidden" name="id_riwayat" value="<?= $r['id_riwayat']; ?>">
-                                        <input type="hidden" name="hapus_riwayat" value="1">
-                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
-                                            Hapus
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php 
-                            endwhile;
-                        else: 
-                        ?>
-                            <tr id="emptyRiwayatRow">
-                                <td colspan="6" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada riwayat peminjaman.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+        <!-- --------------------------------------- -->
+        <!-- VIEW 1.1: TAMBAH SISWA                  -->
+        <!-- --------------------------------------- -->
+        <div id="view-tambah-siswa" class="main-view-section hidden max-w-xl mx-auto">
+            <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100">
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-xl bg-brand-orange/10 text-brand-orange flex items-center justify-center font-bold text-sm">
+                        👨‍🎓
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-brand-navy">Tambah Data Siswa</h2>
+                        <p class="text-xs text-slate-400">Registrasi manual atau import via CSV/Excel</p>
+                    </div>
+                </div>
+
+                <!-- Form 1: Input Siswa Manual -->
+                <form action="" method="POST" class="space-y-3 pb-5 border-b border-slate-100">
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nomor Kartu (Tap di sini):</label>
+                        <input type="text" name="nomor_kartu" required placeholder="Tap kartu siswa..." class="w-full p-2.5 border border-amber-300 rounded-xl text-sm bg-amber-50/60 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition font-medium">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Nama Siswa:</label>
+                        <input type="text" name="nama" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Kelas:</label>
+                        <input type="text" name="kelas" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Password Akun Siswa:</label>
+                        <input type="password" name="password" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
+                    </div>
+                    <button type="submit" name="tambah_siswa" class="w-full bg-gradient-to-r from-brand-orange to-brand-amber hover:opacity-95 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-orange/20 transition active:scale-[0.98]">
+                        Simpan Data Siswa
+                    </button>
+                </form>
+
+                <!-- Form 2: Import Siswa CSV -->
+                <form action="" method="POST" enctype="multipart/form-data" class="pt-4 space-y-2">
+                    <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                        📁 Import Massal (CSV / Excel):
+                    </label>
+                    <input type="file" name="file_excel_siswa" accept=".csv" required class="w-full p-1.5 border border-emerald-200 rounded-xl text-xs bg-emerald-50/50 focus:outline-none">
+                    <button type="submit" name="import_siswa" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition active:scale-[0.98] flex items-center justify-center gap-1">
+                        📊 Upload & Import Excel
+                    </button>
+                </form>
             </div>
         </div>
 
-        <!-- TABEL DAFTAR SISWA -->
-        <div id="siswa-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
-            <?php
-            $q_siswa = mysqli_query($koneksi, "SELECT * FROM siswa ORDER BY nama ASC");
-            $total_siswa = mysqli_num_rows($q_siswa);
-            ?>
-            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
-                <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Siswa Terdaftar</h2>
-                <div class="flex items-center gap-2">
-                    <!-- Tombol Hapus Semua Siswa (Sebelah Kiri Pencarian) -->
-                    <form action="" method="POST" onsubmit="return confirmHapusSemuaSiswa(event);">
-                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
-                            🗑️ Hapus Semua
-                        </button>
-                    </form>
+        <!-- --------------------------------------- -->
+        <!-- VIEW 1.2: TAMBAH BUKU                   -->
+        <!-- --------------------------------------- -->
+        <div id="view-tambah-buku" class="main-view-section hidden max-w-xl mx-auto">
+            <div class="bg-white p-6 rounded-3xl shadow-xl border border-slate-100">
+                <div class="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-xl bg-brand-teal/10 text-brand-teal flex items-center justify-center font-bold text-sm">
+                        📖
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-brand-navy">Tambah Koleksi Buku</h2>
+                        <p class="text-xs text-slate-400">Tambah koleksi buku manual atau import CSV</p>
+                    </div>
+                </div>
 
-                    <input type="text" id="searchSiswa" onkeyup="filterSiswa()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                    <span class="bg-brand-teal/10 text-brand-teal border border-brand-teal/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
-                        Total: <?= $total_siswa; ?>
-                    </span>
+                <!-- Form 1: Manual -->
+                <form action="" method="POST" enctype="multipart/form-data" class="space-y-3 pb-5 border-b border-slate-100">
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Judul Buku:</label>
+                        <input type="text" name="judul" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Penulis:</label>
+                        <input type="text" name="penulis" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition">
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Sinopsis Singkat:</label>
+                        <textarea name="sinopsis" rows="2" required class="w-full p-2.5 border border-slate-200 rounded-xl text-sm bg-slate-50 focus:bg-white focus:ring-2 focus:ring-brand-teal focus:outline-none transition"></textarea>
+                    </div>
+                    <div>
+                        <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cover Buku (JPG/PNG):</label>
+                        <input type="file" name="cover" accept="image/*" class="w-full p-1 border border-slate-200 rounded-xl text-xs bg-slate-50 focus:outline-none">
+                    </div>
+                    <button type="submit" name="tambah_buku" class="w-full bg-brand-teal hover:bg-teal-600 text-white py-2.5 rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-brand-teal/20 transition active:scale-[0.98]">
+                        + Tambah Buku Manual
+                    </button>
+                </form>
+
+                <!-- Form 2: Import CSV -->
+                <form action="" method="POST" enctype="multipart/form-data" class="pt-4 space-y-2">
+                    <label class="text-[11px] font-bold text-slate-700 uppercase tracking-wider block">
+                        📁 Import Massal (CSV / Excel):
+                    </label>
+                    <input type="file" name="file_excel" accept=".csv" required class="w-full p-1.5 border border-emerald-200 rounded-xl text-xs bg-emerald-50/50 focus:outline-none">
+                    <button type="submit" name="import_buku" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-xs font-bold shadow-md shadow-emerald-600/20 transition active:scale-[0.98] flex items-center justify-center gap-1">
+                        📊 Upload & Import Excel
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- --------------------------------------- -->
+        <!-- VIEW 3: DATA MASTER (3 TABEL LAINNYA)  -->
+        <!-- --------------------------------------- -->
+        <div id="view-data-master" class="main-view-section hidden space-y-5 max-w-4xl mx-auto">
+            
+            <!-- TAB SWITCHER 3 TABEL DATA -->
+            <div class="flex overflow-x-auto no-scrollbar gap-2 border-b border-slate-200 pb-3">
+                <button onclick="openTab('riwayat-tab', this)" class="tab-btn shrink-0 bg-brand-navy text-white px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition">
+                    📜 Riwayat Peminjaman
+                </button>
+                <button onclick="openTab('siswa-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
+                    👨‍🎓 Daftar Siswa
+                </button>
+                <button onclick="openTab('buku-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
+                    📚 Daftar Buku
+                </button>
+            </div>
+
+            <!-- TAB 1: RIWAYAT PEMINJAMAN -->
+            <div id="riwayat-tab" class="tab-content bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                    <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Riwayat Peminjaman</h2>
+                    <div class="flex items-center gap-2">
+                        <form action="" method="POST" id="formHapusSemuaRiwayat" onsubmit="return confirmHapusSemuaRiwayat(event, this);">
+                            <input type="hidden" name="hapus_semua_riwayat" value="1">
+                            <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
+                                🗑️ Hapus Semua
+                            </button>
+                        </form>
+                        <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm" id="tableRiwayat">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
+                            <tr>
+                                <th class="p-3 rounded-l-xl">Nama Siswa</th>
+                                <th class="p-3">Kelas</th>
+                                <th class="p-3">Judul Buku</th>
+                                <th class="p-3">Tanggal Pinjam</th>
+                                <th class="p-3">Tanggal Kembali</th>
+                                <th class="p-3 text-center rounded-r-xl">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php
+                            $q_riwayat = mysqli_query($koneksi, "
+                                SELECT p.id AS id_riwayat, s.nama, s.kelas, b.judul, p.tanggal_pinjam, p.tanggal_kembali 
+                                FROM peminjaman p
+                                JOIN siswa s ON p.siswa_id = s.id
+                                JOIN buku b ON p.buku_id = b.id
+                                WHERE p.status_transaksi = 'selesai'
+                                ORDER BY p.tanggal_kembali DESC
+                            ");
+
+                            if (mysqli_num_rows($q_riwayat) > 0):
+                                while ($r = mysqli_fetch_assoc($q_riwayat)):
+                            ?>
+                                <tr class="row-riwayat hover:bg-slate-50 transition">
+                                    <td class="p-3 font-semibold text-slate-800 cell-nama-riwayat"><?= $r['nama']; ?></td>
+                                    <td class="p-3 text-slate-600"><?= $r['kelas']; ?></td>
+                                    <td class="p-3 text-slate-700 font-medium"><?= $r['judul']; ?></td>
+                                    <td class="p-3 text-slate-500 whitespace-nowrap"><?= date('d-m-Y', strtotime($r['tanggal_pinjam'])); ?></td>
+                                    <td class="p-3 text-brand-teal font-bold whitespace-nowrap"><?= date('d-m-Y', strtotime($r['tanggal_kembali'])); ?></td>
+                                    <td class="p-3 text-center">
+                                        <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin hapus riwayat ini?', this);">
+                                            <input type="hidden" name="id_riwayat" value="<?= $r['id_riwayat']; ?>">
+                                            <input type="hidden" name="hapus_riwayat" value="1">
+                                            <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition">
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endwhile; else: ?>
+                                <tr id="emptyRiwayatRow">
+                                    <td colspan="6" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada riwayat peminjaman.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs sm:text-sm" id="tableSiswa">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
-                        <tr>
-                            <th class="p-3 rounded-l-xl">Nomor Kartu</th>
-                            <th class="p-3">Nama Siswa</th>
-                            <th class="p-3">Kelas</th>
-                            <th class="p-3 text-center rounded-r-xl">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php
-                        if ($total_siswa > 0):
-                            while ($s = mysqli_fetch_assoc($q_siswa)):
-                        ?>
-                            <tr class="row-siswa hover:bg-slate-50 transition">
-                                <td class="p-3 font-mono font-bold text-brand-orange"><?= $s['nomor_kartu']; ?></td>
-                                <td class="p-3 font-semibold text-slate-800 cell-nama"><?= $s['nama']; ?></td>
-                                <td class="p-3 text-slate-600"><?= $s['kelas']; ?></td>
-                                <td class="p-3 text-center flex justify-center gap-1.5">
-                                    <button onclick='openEditSiswaModal(<?= json_encode($s); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
-                                        Edit
-                                    </button>
-                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin menghapus siswa ini?', this);">
-                                        <input type="hidden" name="id_siswa" value="<?= $s['id']; ?>">
-                                        <input type="hidden" name="hapus_siswa" value="1">
-                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
-                                            Hapus
+            <!-- TAB 2: DAFTAR SISWA -->
+            <div id="siswa-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
+                <?php
+                $q_siswa = mysqli_query($koneksi, "SELECT * FROM siswa ORDER BY nama ASC");
+                $total_siswa = mysqli_num_rows($q_siswa);
+                ?>
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                    <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Siswa Terdaftar</h2>
+                    <div class="flex items-center gap-2">
+                        <form action="" method="POST" onsubmit="return confirmHapusSemuaSiswa(event);">
+                            <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
+                                🗑️ Hapus Semua
+                            </button>
+                        </form>
+                        <input type="text" id="searchSiswa" onkeyup="filterSiswa()" placeholder="Cari nama siswa..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                        <span class="bg-brand-teal/10 text-brand-teal border border-brand-teal/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
+                            Total: <?= $total_siswa; ?>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm" id="tableSiswa">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
+                            <tr>
+                                <th class="p-3 rounded-l-xl">Nomor Kartu</th>
+                                <th class="p-3">Nama Siswa</th>
+                                <th class="p-3">Kelas</th>
+                                <th class="p-3 text-center rounded-r-xl">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php if ($total_siswa > 0): while ($s = mysqli_fetch_assoc($q_siswa)): ?>
+                                <tr class="row-siswa hover:bg-slate-50 transition">
+                                    <td class="p-3 font-mono font-bold text-brand-orange"><?= $s['nomor_kartu']; ?></td>
+                                    <td class="p-3 font-semibold text-slate-800 cell-nama"><?= $s['nama']; ?></td>
+                                    <td class="p-3 text-slate-600"><?= $s['kelas']; ?></td>
+                                    <td class="p-3 text-center flex justify-center gap-1.5">
+                                        <button onclick='openEditSiswaModal(<?= json_encode($s); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition">
+                                            Edit
                                         </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php 
-                            endwhile;
-                        else: 
-                        ?>
-                            <tr id="emptySiswaRow">
-                                <td colspan="4" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada siswa yang terdaftar.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- TABEL DAFTAR BUKU KOLEKSI -->
-        <div id="buku-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-4 sm:p-6 border border-slate-100">
-            <?php
-            $q_buku_all = mysqli_query($koneksi, "SELECT * FROM buku ORDER BY judul ASC");
-            $total_buku = mysqli_num_rows($q_buku_all);
-            ?>
-            <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
-                <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Buku Koleksi</h2>
-                <div class="flex items-center gap-2">
-                    <!-- Tombol Hapus Semua Buku (Sebelah Kiri Pencarian) -->
-                    <form action="" method="POST" id="formHapusSemuaBuku" onsubmit="return confirmHapusSemuaBuku(event, this);">
-                        <input type="hidden" name="hapus_semua_buku" value="1">
-                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
-                            🗑️ Hapus Semua
-                        </button>
-                    </form>
-
-                    <input type="text" id="searchBuku" onkeyup="filterBuku()" placeholder="Cari judul buku..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
-                    <span class="bg-brand-navy/10 text-brand-navy border border-brand-navy/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
-                        Total: <?= $total_buku; ?>
-                    </span>
+                                        <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin menghapus siswa ini?', this);">
+                                            <input type="hidden" name="id_siswa" value="<?= $s['id']; ?>">
+                                            <input type="hidden" name="hapus_siswa" value="1">
+                                            <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition">
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endwhile; else: ?>
+                                <tr id="emptySiswaRow">
+                                    <td colspan="4" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada siswa yang terdaftar.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
                 </div>
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-xs sm:text-sm" id="tableBuku">
-                    <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
-                        <tr>
-                            <th class="p-3 rounded-l-xl">Judul Buku</th>
-                            <th class="p-3">Penulis</th>
-                            <th class="p-3 text-center">Status</th>
-                            <th class="p-3 text-center rounded-r-xl">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <?php
-                        if ($total_buku > 0):
-                            while ($b = mysqli_fetch_assoc($q_buku_all)):
-                        ?>
-                            <tr class="row-buku hover:bg-slate-50 transition">
-                                <td class="p-3 font-semibold text-slate-800 cell-judul"><?= $b['judul']; ?></td>
-                                <td class="p-3 text-slate-600"><?= $b['penulis']; ?></td>
-                                <td class="p-3 text-center">
-                                    <?php if ($b['status'] === 'tersedia'): ?>
-                                        <span class="bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold">Tersedia</span>
-                                    <?php else: ?>
-                                        <span class="bg-amber-100 text-amber-700 text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold">Dipinjam</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="p-3 text-center flex justify-center gap-1.5">
-                                    <button onclick='openEditBukuModal(<?= json_encode($b); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
-                                        Edit
-                                    </button>
-                                    <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin menghapus buku ini?', this);">
-                                        <input type="hidden" name="id_buku" value="<?= $b['id']; ?>">
-                                        <input type="hidden" name="hapus_buku" value="1">
-                                        <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg font-bold transition">
-                                            Hapus
+
+            <!-- TAB 3: DAFTAR BUKU -->
+            <div id="buku-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
+                <?php
+                $q_buku_all = mysqli_query($koneksi, "SELECT * FROM buku ORDER BY judul ASC");
+                $total_buku = mysqli_num_rows($q_buku_all);
+                ?>
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                    <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Buku Koleksi</h2>
+                    <div class="flex items-center gap-2">
+                        <form action="" method="POST" id="formHapusSemuaBuku" onsubmit="return confirmHapusSemuaBuku(event, this);">
+                            <input type="hidden" name="hapus_semua_buku" value="1">
+                            <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-sm transition whitespace-nowrap flex items-center gap-1">
+                                🗑️ Hapus Semua
+                            </button>
+                        </form>
+                        <input type="text" id="searchBuku" onkeyup="filterBuku()" placeholder="Cari judul buku..." class="w-full sm:w-64 p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                        <span class="bg-brand-navy/10 text-brand-navy border border-brand-navy/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
+                            Total: <?= $total_buku; ?>
+                        </span>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm" id="tableBuku">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
+                            <tr>
+                                <th class="p-3 rounded-l-xl">Judul Buku</th>
+                                <th class="p-3">Penulis</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3 text-center rounded-r-xl">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php if ($total_buku > 0): while ($b = mysqli_fetch_assoc($q_buku_all)): ?>
+                                <tr class="row-buku hover:bg-slate-50 transition">
+                                    <td class="p-3 font-semibold text-slate-800 cell-judul"><?= $b['judul']; ?></td>
+                                    <td class="p-3 text-slate-600"><?= $b['penulis']; ?></td>
+                                    <td class="p-3 text-center">
+                                        <?php if ($b['status'] === 'tersedia'): ?>
+                                            <span class="bg-emerald-100 text-emerald-700 text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold">Tersedia</span>
+                                        <?php else: ?>
+                                            <span class="bg-amber-100 text-amber-700 text-[10px] sm:text-xs px-2.5 py-1 rounded-full font-bold">Dipinjam</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="p-3 text-center flex justify-center gap-1.5">
+                                        <button onclick='openEditBukuModal(<?= json_encode($b); ?>)' class="bg-brand-amber hover:bg-amber-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition">
+                                            Edit
                                         </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php 
-                            endwhile;
-                        else: 
-                        ?>
-                            <tr id="emptyBukuRow">
-                                <td colspan="4" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada buku yang terdaftar.</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                                        <form action="" method="POST" onsubmit="return confirmAction(event, 'Yakin ingin menghapus buku ini?', this);">
+                                            <input type="hidden" name="id_buku" value="<?= $b['id']; ?>">
+                                            <input type="hidden" name="hapus_buku" value="1">
+                                            <button type="submit" class="bg-rose-500 hover:bg-rose-600 text-white text-[11px] px-2.5 py-1.5 rounded-lg font-bold transition">
+                                                Hapus
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endwhile; else: ?>
+                                <tr id="emptyBukuRow">
+                                    <td colspan="4" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada buku yang terdaftar.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
             </div>
+
         </div>
 
-    </div>
+    </main>
 
     <!-- MODAL EDIT SISWA -->
     <div id="modalSiswa" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl shadow-2xl p-5 sm:p-6 w-full max-w-md space-y-4 border border-slate-100">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md space-y-4 border border-slate-100">
             <h3 class="font-bold text-base sm:text-lg text-brand-navy border-b pb-3">Edit Data Siswa</h3>
             <form action="" method="POST" class="space-y-3">
                 <input type="hidden" name="id_siswa" id="edit_siswa_id">
@@ -963,7 +988,7 @@ if (isset($_POST['kirim_peringatan'])) {
 
     <!-- MODAL EDIT BUKU -->
     <div id="modalBuku" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl shadow-2xl p-5 sm:p-6 w-full max-w-md space-y-4 border border-slate-100">
+        <div class="bg-white rounded-3xl shadow-2xl p-6 w-full max-w-md space-y-4 border border-slate-100">
             <h3 class="font-bold text-base sm:text-lg text-brand-navy border-b pb-3">Edit Data Buku</h3>
             <form action="" method="POST" enctype="multipart/form-data" class="space-y-3">
                 <input type="hidden" name="id_buku" id="edit_buku_id">
@@ -992,12 +1017,56 @@ if (isset($_POST['kirim_peringatan'])) {
     </div>
 
     <script>
-        // Auto Focus Langsung ke Input Tap Kartu Pinjam Saat Refresh Halaman
+        // Switch Tampilan Utama Melalui Sidebar Navigasi
+        function switchMainView(viewId, clickedBtn) {
+            document.querySelectorAll('.main-view-section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(viewId).classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn, .sub-nav-btn').forEach(btn => {
+                btn.classList.remove('bg-brand-orange', 'text-white', 'shadow-lg');
+                if(!btn.classList.contains('sub-nav-btn')) {
+                    btn.classList.add('text-slate-300', 'hover:text-white', 'hover:bg-slate-800/80');
+                }
+            });
+
+            if (clickedBtn) {
+                clickedBtn.classList.remove('text-slate-300', 'hover:text-white', 'hover:bg-slate-800/80');
+                clickedBtn.classList.add('bg-brand-orange', 'text-white', 'shadow-lg');
+            }
+
+            if (viewId === 'view-peminjaman') {
+                const pinjamInput = document.getElementById('input_nomor_kartu_pinjam');
+                if (pinjamInput) {
+                    pinjamInput.focus();
+                    pinjamInput.select();
+                }
+            }
+        }
+
+        // Toggle Submenu 'Tambah Data'
+        function toggleSubmenu(id) {
+            const submenu = document.getElementById(id);
+            const arrow = document.getElementById('arrow-tambah');
+            submenu.classList.toggle('hidden');
+            arrow.classList.toggle('rotate-180');
+        }
+
+        // Switch Tab Data Master (Tabel Data)
+        function openTab(tabName, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(b => {
+                b.className = "tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition";
+            });
+
+            document.getElementById(tabName).classList.remove('hidden');
+            btnElement.className = "tab-btn shrink-0 bg-brand-navy text-white px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition";
+        }
+
+        // Auto Focus Saat Load
         window.addEventListener('DOMContentLoaded', () => {
             const pinjamInput = document.getElementById('input_nomor_kartu_pinjam');
             if (pinjamInput) {
                 pinjamInput.focus();
-                pinjamInput.select();
             }
         });
 
@@ -1007,9 +1076,7 @@ if (isset($_POST['kirim_peringatan'])) {
                 title: '<?= $msg_type == 'success' ? 'Berhasil!' : 'Gagal!'; ?>',
                 text: '<?= addslashes($msg); ?>',
                 confirmButtonColor: '#1B365D',
-                customClass: {
-                    popup: 'rounded-3xl'
-                }
+                customClass: { popup: 'rounded-3xl' }
             });
         <?php endif; ?>
 
@@ -1024,49 +1091,11 @@ if (isset($_POST['kirim_peringatan'])) {
                 cancelButtonColor: '#64748B',
                 confirmButtonText: 'Ya, Lanjutkan!',
                 cancelButtonText: 'Batal',
-                customClass: {
-                    popup: 'rounded-3xl'
-                }
+                customClass: { popup: 'rounded-3xl' }
             }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
+                if (result.isConfirmed) form.submit();
             });
             return false;
-        }
-
-        // Switch Tab Navigasi Form Khusus HP
-        function switchFormTab(targetTabId, btn) {
-            const contents = document.querySelectorAll('.form-tab-content');
-            contents.forEach(el => {
-                el.classList.add('hidden');
-            });
-            document.getElementById(targetTabId).classList.remove('hidden');
-
-            const btns = document.querySelectorAll('.form-tab-btn');
-            btns.forEach(b => {
-                b.className = "form-tab-btn shrink-0 bg-white text-slate-600 border border-slate-200 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition";
-            });
-            btn.className = "form-tab-btn shrink-0 bg-brand-navy text-white px-3.5 py-2 rounded-xl text-xs font-bold shadow transition";
-            
-            // Focus ke input pinjam jika tab pinjam dibuka
-            if (targetTabId === 'form-pinjam-tab') {
-                document.getElementById('input_nomor_kartu_pinjam').focus();
-            }
-        }
-
-        // Switch Tab Navigasi Tabel Data
-        function openTab(tabName, btnElement) {
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => content.classList.add('hidden'));
-
-            const tabButtons = document.querySelectorAll('.tab-btn');
-            tabButtons.forEach(btn => {
-                btn.className = "tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition";
-            });
-
-            document.getElementById(tabName).classList.remove('hidden');
-            btnElement.className = "tab-btn shrink-0 bg-brand-navy text-white px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-md transition";
         }
 
         function openEditSiswaModal(siswa) {
@@ -1091,8 +1120,7 @@ if (isset($_POST['kirim_peringatan'])) {
 
         function filterSiswa() {
             let input = document.getElementById('searchSiswa').value.toLowerCase();
-            let rows = document.querySelectorAll('.row-siswa');
-            rows.forEach(row => {
+            document.querySelectorAll('.row-siswa').forEach(row => {
                 let nama = row.querySelector('.cell-nama').textContent.toLowerCase();
                 row.style.display = nama.includes(input) ? "" : "none";
             });
@@ -1100,8 +1128,7 @@ if (isset($_POST['kirim_peringatan'])) {
 
         function filterBuku() {
             let input = document.getElementById('searchBuku').value.toLowerCase();
-            let rows = document.querySelectorAll('.row-buku');
-            rows.forEach(row => {
+            document.querySelectorAll('.row-buku').forEach(row => {
                 let judul = row.querySelector('.cell-judul').textContent.toLowerCase();
                 row.style.display = judul.includes(input) ? "" : "none";
             });
@@ -1109,8 +1136,7 @@ if (isset($_POST['kirim_peringatan'])) {
 
         function filterRiwayat() {
             let input = document.getElementById('searchRiwayat').value.toLowerCase();
-            let rows = document.querySelectorAll('.row-riwayat');
-            rows.forEach(row => {
+            document.querySelectorAll('.row-riwayat').forEach(row => {
                 let nama = row.querySelector('.cell-nama-riwayat').textContent.toLowerCase();
                 row.style.display = nama.includes(input) ? "" : "none";
             });
@@ -1125,8 +1151,7 @@ if (isset($_POST['kirim_peringatan'])) {
 
         function filterPeminjamanTap() {
             let input = document.getElementById('tapKartuReturn').value.toLowerCase().trim();
-            let rows = document.querySelectorAll('.row-peminjaman');
-            rows.forEach(row => {
+            document.querySelectorAll('.row-peminjaman').forEach(row => {
                 let kartu = (row.getAttribute('data-kartu') || '').toLowerCase();
                 let nama = (row.getAttribute('data-nama') || '').toLowerCase();
                 row.style.display = (kartu.includes(input) || nama.includes(input)) ? "" : "none";
@@ -1142,8 +1167,7 @@ if (isset($_POST['kirim_peringatan'])) {
         });
 
         function updateCountdown() {
-            const timers = document.querySelectorAll('.countdown-timer');
-            timers.forEach(timer => {
+            document.querySelectorAll('.countdown-timer').forEach(timer => {
                 const targetDate = new Date(timer.getAttribute('data-target')).getTime();
                 const now = new Date().getTime();
                 const diff = targetDate - now;
@@ -1161,11 +1185,8 @@ if (isset($_POST['kirim_peringatan'])) {
             });
         }
 
-        // Konfirmasi & Hapus Semua Buku
         function confirmHapusSemuaBuku(e) {
             e.preventDefault();
-            
-            // 1. Alert Konfirmasi
             Swal.fire({
                 title: 'HAPUS SEMUA BUKU?',
                 text: "Tindakan ini akan menghapus seluruh koleksi buku secara permanen!",
@@ -1178,58 +1199,27 @@ if (isset($_POST['kirim_peringatan'])) {
                 customClass: { popup: 'rounded-3xl' }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Loading indicator saat memproses
-                    Swal.fire({
-                        title: 'Memproses...',
-                        text: 'Sedang menghapus data...',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                    });
-
-                    // Kirim request ke PHP via Fetch/AJAX
+                    Swal.fire({ title: 'Memproses...', text: 'Sedang menghapus data...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
                     let formData = new FormData();
                     formData.append('hapus_semua_buku_ajax', '1');
 
-                    fetch('admin_dashboard.php', {
-                        method: 'POST',
-                        body: formData
-                    })
+                    fetch('admin_dashboard.php', { method: 'POST', body: formData })
                     .then(res => res.json())
                     .then(data => {
-                        // 2. Alert Berhasil / Gagal setelah eksekusi
                         if (data.status === 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil!',
-                                text: data.message,
-                                confirmButtonColor: '#1B365D',
-                                customClass: { popup: 'rounded-3xl' }
-                            }).then(() => {
-                                location.reload(); // Refresh halaman setelah klik OK
-                            });
+                            Swal.fire({ icon: 'success', title: 'Berhasil!', text: data.message, confirmButtonColor: '#1B365D', customClass: { popup: 'rounded-3xl' } }).then(() => location.reload());
                         } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal!',
-                                text: data.message,
-                                confirmButtonColor: '#1B365D',
-                                customClass: { popup: 'rounded-3xl' }
-                            });
+                            Swal.fire({ icon: 'error', title: 'Gagal!', text: data.message, confirmButtonColor: '#1B365D', customClass: { popup: 'rounded-3xl' } });
                         }
                     })
-                    .catch(err => {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' });
-                    });
+                    .catch(err => { Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' }); });
                 }
             });
             return false;
         }
 
-        // Konfirmasi & Hapus Semua Riwayat Peminjaman
         function confirmHapusSemuaRiwayat(e) {
             e.preventDefault();
-            
-            // 1. Alert Konfirmasi
             Swal.fire({
                 title: 'HAPUS SEMUA RIWAYAT?',
                 text: "Tindakan ini akan menghapus seluruh riwayat peminjaman secara permanen!",
@@ -1242,58 +1232,27 @@ if (isset($_POST['kirim_peringatan'])) {
                 customClass: { popup: 'rounded-3xl' }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Loading indicator saat memproses
-                    Swal.fire({
-                        title: 'Memproses...',
-                        text: 'Sedang menghapus riwayat...',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                    });
-
-                    // Kirim request ke PHP via Fetch/AJAX
+                    Swal.fire({ title: 'Memproses...', text: 'Sedang menghapus riwayat...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
                     let formData = new FormData();
                     formData.append('hapus_semua_riwayat_ajax', '1');
 
-                    fetch('admin_dashboard.php', {
-                        method: 'POST',
-                        body: formData
-                    })
+                    fetch('admin_dashboard.php', { method: 'POST', body: formData })
                     .then(res => res.json())
                     .then(data => {
-                        // 2. Alert Berhasil / Gagal setelah eksekusi
                         if (data.status === 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil!',
-                                text: data.message,
-                                confirmButtonColor: '#1B365D',
-                                customClass: { popup: 'rounded-3xl' }
-                            }).then(() => {
-                                location.reload(); // Refresh halaman setelah klik OK
-                            });
+                            Swal.fire({ icon: 'success', title: 'Berhasil!', text: data.message, confirmButtonColor: '#1B365D', customClass: { popup: 'rounded-3xl' } }).then(() => location.reload());
                         } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal!',
-                                text: data.message,
-                                confirmButtonColor: '#1B365D',
-                                customClass: { popup: 'rounded-3xl' }
-                            });
+                            Swal.fire({ icon: 'error', title: 'Gagal!', text: data.message, confirmButtonColor: '#1B365D', customClass: { popup: 'rounded-3xl' } });
                         }
                     })
-                    .catch(err => {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' });
-                    });
+                    .catch(err => { Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' }); });
                 }
             });
             return false;
         }
 
-        // Konfirmasi & Hapus Semua Siswa
         function confirmHapusSemuaSiswa(e) {
             e.preventDefault();
-            
-            // 1. Alert Konfirmasi
             Swal.fire({
                 title: 'HAPUS SEMUA SISWA?',
                 text: "Tindakan ini akan menghapus seluruh data siswa terdaftar secara permanen!",
@@ -1306,48 +1265,20 @@ if (isset($_POST['kirim_peringatan'])) {
                 customClass: { popup: 'rounded-3xl' }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Loading indicator saat memproses
-                    Swal.fire({
-                        title: 'Memproses...',
-                        text: 'Sedang menghapus data siswa...',
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                    });
-
-                    // Kirim request ke PHP via Fetch/AJAX
+                    Swal.fire({ title: 'Memproses...', text: 'Sedang menghapus data siswa...', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
                     let formData = new FormData();
                     formData.append('hapus_semua_siswa_ajax', '1');
 
-                    fetch('admin_dashboard.php', {
-                        method: 'POST',
-                        body: formData
-                    })
+                    fetch('admin_dashboard.php', { method: 'POST', body: formData })
                     .then(res => res.json())
                     .then(data => {
-                        // 2. Alert Berhasil / Gagal setelah eksekusi
                         if (data.status === 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Berhasil!',
-                                text: data.message,
-                                confirmButtonColor: '#1B365D',
-                                customClass: { popup: 'rounded-3xl' }
-                            }).then(() => {
-                                location.reload(); // Refresh halaman setelah klik OK
-                            });
+                            Swal.fire({ icon: 'success', title: 'Berhasil!', text: data.message, confirmButtonColor: '#1B365D', customClass: { popup: 'rounded-3xl' } }).then(() => location.reload());
                         } else {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Gagal!',
-                                text: data.message,
-                                confirmButtonColor: '#1B365D',
-                                customClass: { popup: 'rounded-3xl' }
-                            });
+                            Swal.fire({ icon: 'error', title: 'Gagal!', text: data.message, confirmButtonColor: '#1B365D', customClass: { popup: 'rounded-3xl' } });
                         }
                     })
-                    .catch(err => {
-                        Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' });
-                    });
+                    .catch(err => { Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan pada server.' }); });
                 }
             });
             return false;
