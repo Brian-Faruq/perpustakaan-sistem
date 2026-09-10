@@ -27,6 +27,16 @@ $search_escaped = mysqli_real_escape_string($koneksi, $search);
 $q_total_buku = mysqli_query($koneksi, "SELECT COUNT(*) AS total FROM buku");
 $d_total_buku = mysqli_fetch_assoc($q_total_buku);
 $total_buku = $d_total_buku['total'] ?? 0;
+
+// Query Leaderboard (Hitung Peminjaman Terbanyak Per Siswa)
+$q_leaderboard = mysqli_query($koneksi, "
+    SELECT s.id, s.nama, COUNT(p.id) AS total_pinjam 
+    FROM siswa s 
+    LEFT JOIN peminjaman p ON s.id = p.siswa_id 
+    GROUP BY s.id, s.nama 
+    ORDER BY total_pinjam DESC, s.nama ASC 
+    LIMIT 10
+");
 ?>
 
 <!DOCTYPE html>
@@ -57,9 +67,10 @@ $total_buku = $d_total_buku['total'] ?? 0;
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col md:flex-row pb-20 md:pb-0">
 
-    <!-- ================= SIDEBAR DESKTOP ================= -->
-    <aside class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 min-h-screen sticky top-0 border-r border-slate-800 flex-shrink-0 z-30">
-        <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+<!-- ================= SIDEBAR DESKTOP ================= -->
+    <aside class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 h-screen sticky top-0 border-r border-slate-800 flex-shrink-0 z-30">
+        <!-- Header Logo -->
+        <div class="p-6 border-b border-slate-800 flex items-center gap-3 flex-shrink-0">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-white text-xl shadow-lg">
                 📚
             </div>
@@ -70,7 +81,7 @@ $total_buku = $d_total_buku['total'] ?? 0;
         </div>
 
         <!-- Profil Siswa -->
-        <div class="p-4 mx-4 mt-4 bg-slate-800/80 rounded-2xl border border-slate-700/50 flex items-center gap-3">
+        <div class="p-4 mx-4 mt-4 bg-slate-800/80 rounded-2xl border border-slate-700/50 flex items-center gap-3 flex-shrink-0">
             <div class="w-10 h-10 rounded-full bg-brand-teal text-white flex items-center justify-center font-bold text-sm shadow">
                 <?= strtoupper(substr($nama_user, 0, 1)); ?>
             </div>
@@ -80,8 +91,8 @@ $total_buku = $d_total_buku['total'] ?? 0;
             </div>
         </div>
 
-        <!-- Menu Navigation Tabs -->
-        <nav class="flex-1 p-4 space-y-1.5">
+        <!-- Menu Navigation Tabs (HANYA BAGIAN INI YANG BISA DI-SCROLL JIKA MENU SANGAT BANYAK) -->
+        <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
             <button id="btn-tab-katalog" onclick="switchTab('katalog')" class="w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                 <span>Koleksi Buku</span>
@@ -90,6 +101,12 @@ $total_buku = $d_total_buku['total'] ?? 0;
             <button id="btn-tab-riwayat" onclick="switchTab('riwayat')" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 <span>Riwayat Pinjam</span>
+            </button>
+
+            <!-- Leaderboard Nav Button -->
+            <button id="btn-tab-leaderboard" onclick="switchTab('leaderboard')" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>Leaderboard</span>
             </button>
 
             <button onclick="openModal('modal-notifikasi')" class="w-full flex items-center justify-between px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition">
@@ -103,7 +120,8 @@ $total_buku = $d_total_buku['total'] ?? 0;
             </button>
         </nav>
 
-        <div class="p-4 border-t border-slate-800">
+        <!-- Tombol Keluar (SELALU DI BAWAH / TERKUNCI) -->
+        <div class="p-4 border-t border-slate-800 flex-shrink-0">
             <button onclick="confirmLogout()" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 text-xs py-3 rounded-xl font-bold transition border border-slate-700 hover:border-red-500/30">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 <span>Keluar Aplikasi</span>
@@ -289,6 +307,64 @@ $total_buku = $d_total_buku['total'] ?? 0;
                 </div>
             </div>
 
+            <!-- ================= TAB 3: LEADERBOARD ================= -->
+            <div id="tab-leaderboard" class="hidden">
+                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                    <div class="p-4 border-b border-slate-100 bg-slate-50/50">
+                        <h3 class="font-bold text-slate-800 text-sm">🏆 Peringkat Peminjam Terbanyak</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
+                                <tr>
+                                    <th class="p-4 w-16 text-center">Posisi</th>
+                                    <th class="p-4">Nama Siswa</th>
+                                    <th class="p-4 text-center">Total Pinjam</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <?php 
+                                $rank = 1;
+                                if ($q_leaderboard && mysqli_num_rows($q_leaderboard) > 0):
+                                    while ($lb = mysqli_fetch_assoc($q_leaderboard)):
+                                        $is_me = ($lb['id'] == $siswa_id);
+                                ?>
+                                    <tr class="hover:bg-slate-50/80 transition <?= $is_me ? 'bg-brand-orange/5 font-semibold' : ''; ?>">
+                                        <td class="p-4 text-center font-bold text-slate-600">
+                                            <?php 
+                                                if ($rank == 1) echo '🥇';
+                                                elseif ($rank == 2) echo '🥈';
+                                                elseif ($rank == 3) echo '🥉';
+                                                else echo '#'.$rank;
+                                            ?>
+                                        </td>
+                                        <td class="p-4 text-slate-800 flex items-center gap-2">
+                                            <span><?= htmlspecialchars($lb['nama']); ?></span>
+                                            <?php if ($is_me): ?>
+                                                <span class="bg-brand-orange text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">
+                                                    Saya
+                                                </span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="p-4 text-center font-bold text-brand-teal">
+                                            <?= $lb['total_pinjam']; ?> Buku
+                                        </td>
+                                    </tr>
+                                <?php 
+                                    $rank++;
+                                    endwhile;
+                                else:
+                                ?>
+                                    <tr>
+                                        <td colspan="3" class="p-8 text-center text-slate-400">Belum ada data leaderboard.</td>
+                                    </tr>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -302,6 +378,11 @@ $total_buku = $d_total_buku['total'] ?? 0;
         <button id="mb-btn-riwayat" onclick="switchTab('riwayat')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-800">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             <span class="text-[10px] font-medium">Riwayat</span>
+        </button>
+
+        <button id="mb-btn-leaderboard" onclick="switchTab('leaderboard')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            <span class="text-[10px] font-medium">Top Siswa</span>
         </button>
 
         <button onclick="openModal('modal-notifikasi')" class="flex flex-col items-center gap-1 text-slate-500 hover:text-slate-800 relative">
@@ -355,50 +436,60 @@ $total_buku = $d_total_buku['total'] ?? 0;
         function switchTab(tabName) {
             const tabKatalog = document.getElementById('tab-katalog');
             const tabRiwayat = document.getElementById('tab-riwayat');
+            const tabLeaderboard = document.getElementById('tab-leaderboard');
+
             const btnKatalog = document.getElementById('btn-tab-katalog');
             const btnRiwayat = document.getElementById('btn-tab-riwayat');
+            const btnLeaderboard = document.getElementById('btn-tab-leaderboard');
+
             const mbBtnKatalog = document.getElementById('mb-btn-katalog');
             const mbBtnRiwayat = document.getElementById('mb-btn-riwayat');
+            const mbBtnLeaderboard = document.getElementById('mb-btn-leaderboard');
+
             const title = document.getElementById('page-title');
             const subtitle = document.getElementById('page-subtitle');
             
             const searchKatalog = document.getElementById('wrapper-search-katalog');
             const searchRiwayat = document.getElementById('wrapper-search-riwayat');
 
+            // Reset style navigasi desktop & mobile
+            [btnKatalog, btnRiwayat, btnLeaderboard].forEach(b => {
+                if(b) b.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition";
+            });
+            [mbBtnKatalog, mbBtnRiwayat, mbBtnLeaderboard].forEach(b => {
+                if(b) b.className = "flex flex-col items-center gap-1 text-slate-500 hover:text-slate-800 font-medium";
+            });
+
+            // Sembunyikan semua tab & search
+            tabKatalog.classList.add('hidden');
+            tabRiwayat.classList.add('hidden');
+            tabLeaderboard.classList.add('hidden');
+            searchKatalog.classList.add('hidden');
+            searchRiwayat.classList.add('hidden');
+
             if (tabName === 'katalog') {
                 tabKatalog.classList.remove('hidden');
-                tabRiwayat.classList.add('hidden');
-                
                 searchKatalog.classList.remove('hidden');
-                searchRiwayat.classList.add('hidden');
-                
                 title.innerText = "Katalog Digital";
                 subtitle.innerText = "Eksplorasi koleksi buku yang tersedia";
 
-                // Style Desktop
                 btnKatalog.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
-                btnRiwayat.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition";
-                
-                // Style Mobile
                 mbBtnKatalog.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
-                mbBtnRiwayat.className = "flex flex-col items-center gap-1 text-slate-500 hover:text-slate-800 font-medium";
-            } else {
-                tabKatalog.classList.add('hidden');
+            } else if (tabName === 'riwayat') {
                 tabRiwayat.classList.remove('hidden');
-
-                searchKatalog.classList.add('hidden');
                 searchRiwayat.classList.remove('hidden');
-
                 title.innerText = "Riwayat Peminjaman";
                 subtitle.innerText = "Daftar seluruh buku yang sedang & pernah kamu pinjam";
 
-                // Style Desktop
                 btnRiwayat.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
-                btnKatalog.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition";
-
-                // Style Mobile
                 mbBtnRiwayat.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
-                mbBtnKatalog.className = "flex flex-col items-center gap-1 text-slate-500 hover:text-slate-800 font-medium";
+            } else if (tabName === 'leaderboard') {
+                tabLeaderboard.classList.remove('hidden');
+                title.innerText = "Leaderboard Siswa";
+                subtitle.innerText = "Peringkat siswa dengan aktivitas peminjaman buku terbanyak";
+
+                btnLeaderboard.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
+                mbBtnLeaderboard.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
             }
         }
 
