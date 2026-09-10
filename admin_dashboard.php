@@ -482,10 +482,17 @@ if (isset($_POST['kirim_peringatan'])) {
                         </button>
                     </li>
 
-                    <!-- 3. MENU DATA (TABEL LAINNYA: RIWAYAT, SISWA, BUKU) -->
+                    <!-- 3. MENU DATA MASTER -->
                     <li>
                         <button onclick="switchMainView('view-data-master', this)" class="nav-btn w-full flex items-center gap-2.5 p-3 rounded-2xl hover:bg-slate-800/80 text-slate-300 hover:text-white transition">
                             <span class="text-base">📊</span> 3. Data Master
+                        </button>
+                    </li>
+
+                    <!-- 4. MENU LEADERBOARD -->
+                    <li>
+                        <button onclick="switchMainView('view-leaderboard', this)" class="nav-btn w-full flex items-center gap-2.5 p-3 rounded-2xl hover:bg-slate-800/80 text-slate-300 hover:text-white transition">
+                            <span class="text-base">🏆</span> 4. Leaderboard
                         </button>
                     </li>
 
@@ -954,6 +961,155 @@ if (isset($_POST['kirim_peringatan'])) {
 
         </div>
 
+        <!-- --------------------------------------- -->
+        <!-- VIEW 4: LEADERBOARD SISWA               -->
+        <!-- --------------------------------------- -->
+        <div id="view-leaderboard" class="main-view-section hidden space-y-6 max-w-4xl mx-auto">
+            
+            <?php
+            // Query Mengambil Peringkat Siswa Berdasarkan Jumlah Buku Yang Dipinjam
+            $q_leaderboard = mysqli_query($koneksi, "
+                SELECT s.id, s.nomor_kartu, s.nama, s.kelas, COUNT(p.id) AS total_pinjam
+                FROM siswa s
+                LEFT JOIN peminjaman p ON s.id = p.siswa_id
+                GROUP BY s.id
+                ORDER BY total_pinjam DESC, s.nama ASC
+            ");
+
+            $leaderboard_data = [];
+            while ($row = mysqli_fetch_assoc($q_leaderboard)) {
+                $leaderboard_data[] = $row;
+            }
+            ?>
+
+            <!-- HEADER CARD -->
+            <div class="bg-gradient-to-r from-brand-navy via-slate-800 to-brand-navy text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <span class="bg-brand-amber/20 text-brand-amber border border-brand-amber/30 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">Peringkat Literasi</span>
+                    <h2 class="text-xl sm:text-2xl font-black text-white">🏆 Leaderboard Peminjam Terbanyak</h2>
+                    <p class="text-xs text-slate-300 mt-1">Siswa teraktif meminjam buku di perpustakaan</p>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center min-w-[120px]">
+                    <p class="text-[10px] text-slate-300 font-bold uppercase">Total Siswa Active</p>
+                    <p class="text-2xl font-black text-brand-amber mt-0.5"><?= count($leaderboard_data); ?></p>
+                </div>
+            </div>
+
+            <!-- PODIUM TOP 3 -->
+            <?php if (count($leaderboard_data) >= 1): ?>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end pt-4">
+                    
+                    <!-- JUARA 2 -->
+                    <?php if (isset($leaderboard_data[1])): ?>
+                    <div class="order-2 sm:order-1 bg-white p-5 rounded-3xl shadow-lg border border-slate-100 text-center flex flex-col items-center relative overflow-hidden">
+                        <div class="w-12 h-12 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-black text-lg border-2 border-slate-300 shadow-md mb-2">
+                            2
+                        </div>
+                        <span class="text-xl mb-1">🥈</span>
+                        <p class="font-bold text-slate-800 text-sm truncate w-full"><?= htmlspecialchars($leaderboard_data[1]['nama']); ?></p>
+                        <p class="text-[11px] text-slate-400 font-medium"><?= htmlspecialchars($leaderboard_data[1]['kelas']); ?></p>
+                        <span class="mt-3 bg-slate-100 text-slate-700 font-extrabold text-xs px-3 py-1.5 rounded-xl border border-slate-200">
+                            <?= $leaderboard_data[1]['total_pinjam']; ?> Buku
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- JUARA 1 -->
+                    <?php if (isset($leaderboard_data[0])): ?>
+                    <div class="order-1 sm:order-2 bg-gradient-to-b from-amber-500/10 to-white p-6 rounded-3xl shadow-xl border-2 border-brand-amber text-center flex flex-col items-center relative overflow-hidden transform sm:-translate-y-2">
+                        <div class="absolute top-0 right-0 bg-brand-amber text-white text-[9px] font-black uppercase px-3 py-1 rounded-bl-xl shadow">
+                            Top Reader
+                        </div>
+                        <div class="w-14 h-14 rounded-full bg-brand-amber text-white flex items-center justify-center font-black text-xl shadow-lg shadow-brand-amber/40 border-2 border-white mb-2">
+                            1
+                        </div>
+                        <span class="text-2xl mb-1">👑</span>
+                        <p class="font-black text-brand-navy text-base truncate w-full"><?= htmlspecialchars($leaderboard_data[0]['nama']); ?></p>
+                        <p class="text-xs text-slate-500 font-medium"><?= htmlspecialchars($leaderboard_data[0]['kelas']); ?></p>
+                        <span class="mt-3 bg-brand-amber text-white font-black text-xs px-4 py-1.5 rounded-xl shadow-md shadow-brand-amber/30">
+                            <?= $leaderboard_data[0]['total_pinjam']; ?> Buku
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- JUARA 3 -->
+                    <?php if (isset($leaderboard_data[2])): ?>
+                    <div class="order-3 bg-white p-5 rounded-3xl shadow-lg border border-slate-100 text-center flex flex-col items-center relative overflow-hidden">
+                        <div class="w-12 h-12 rounded-full bg-amber-700/20 text-amber-800 flex items-center justify-center font-black text-lg border-2 border-amber-600/30 shadow-md mb-2">
+                            3
+                        </div>
+                        <span class="text-xl mb-1">🥉</span>
+                        <p class="font-bold text-slate-800 text-sm truncate w-full"><?= htmlspecialchars($leaderboard_data[2]['nama']); ?></p>
+                        <p class="text-[11px] text-slate-400 font-medium"><?= htmlspecialchars($leaderboard_data[2]['kelas']); ?></p>
+                        <span class="mt-3 bg-amber-50 text-amber-800 font-extrabold text-xs px-3 py-1.5 rounded-xl border border-amber-200">
+                            <?= $leaderboard_data[2]['total_pinjam']; ?> Buku
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
+                </div>
+            <?php endif; ?>
+
+            <!-- TABEL DENGAN PERINGKAT LENGKAP -->
+            <div class="bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
+                <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-base text-brand-navy">Daftar Seluruh Peringkat Siswa</h3>
+                    <input type="text" id="searchLeaderboard" onkeyup="filterLeaderboard()" placeholder="Cari nama siswa..." class="p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal w-48 sm:w-64">
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm" id="tableLeaderboard">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
+                            <tr>
+                                <th class="p-3 text-center rounded-l-xl w-16">Rank</th>
+                                <th class="p-3">Nama Siswa</th>
+                                <th class="p-3">Kelas</th>
+                                <th class="p-3 text-center">Nomor Kartu</th>
+                                <th class="p-3 text-center rounded-r-xl">Qty Peminjaman</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php if (count($leaderboard_data) > 0): 
+                                $rank = 1;
+                                foreach ($leaderboard_data as $ld): 
+                            ?>
+                                <tr class="row-leaderboard hover:bg-slate-50 transition">
+                                    <td class="p-3 text-center font-black">
+                                        <?php if ($rank === 1): ?>
+                                            <span class="w-7 h-7 inline-flex items-center justify-center bg-brand-amber text-white rounded-full font-bold text-xs shadow-sm">1</span>
+                                        <?php elseif ($rank === 2): ?>
+                                            <span class="w-7 h-7 inline-flex items-center justify-center bg-slate-300 text-slate-700 rounded-full font-bold text-xs">2</span>
+                                        <?php elseif ($rank === 3): ?>
+                                            <span class="w-7 h-7 inline-flex items-center justify-center bg-amber-700/30 text-amber-900 rounded-full font-bold text-xs">3</span>
+                                        <?php else: ?>
+                                            <span class="text-slate-400 font-bold">#<?= $rank; ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="p-3 font-semibold text-slate-800 cell-nama-leaderboard"><?= htmlspecialchars($ld['nama']); ?></td>
+                                    <td class="p-3 text-slate-600"><?= htmlspecialchars($ld['kelas']); ?></td>
+                                    <td class="p-3 text-center font-mono text-brand-orange font-bold"><?= htmlspecialchars($ld['nomor_kartu']); ?></td>
+                                    <td class="p-3 text-center">
+                                        <span class="bg-brand-teal/10 text-brand-teal font-extrabold text-xs px-3 py-1 rounded-full border border-brand-teal/20">
+                                            <?= $ld['total_pinjam']; ?> Buku
+                                        </span>
+                                    </td>
+                                </tr>
+                            <?php 
+                                $rank++;
+                                endforeach; 
+                            else: 
+                            ?>
+                                <tr>
+                                    <td colspan="5" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada data peminjaman.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
     </main>
 
     <!-- MODAL EDIT SISWA -->
@@ -1138,6 +1294,14 @@ if (isset($_POST['kirim_peringatan'])) {
             let input = document.getElementById('searchRiwayat').value.toLowerCase();
             document.querySelectorAll('.row-riwayat').forEach(row => {
                 let nama = row.querySelector('.cell-nama-riwayat').textContent.toLowerCase();
+                row.style.display = nama.includes(input) ? "" : "none";
+            });
+        }
+
+        function filterLeaderboard() {
+            let input = document.getElementById('searchLeaderboard').value.toLowerCase();
+            document.querySelectorAll('.row-leaderboard').forEach(row => {
+                let nama = row.querySelector('.cell-nama-leaderboard').textContent.toLowerCase();
                 row.style.display = nama.includes(input) ? "" : "none";
             });
         }
