@@ -28,15 +28,23 @@ $q_total_buku = mysqli_query($koneksi, "SELECT COUNT(*) AS total FROM buku");
 $d_total_buku = mysqli_fetch_assoc($q_total_buku);
 $total_buku = $d_total_buku['total'] ?? 0;
 
-// Query Leaderboard (Hitung Peminjaman Terbanyak Per Siswa)
+// Query Leaderboard (Tambahkan s.kelas pada SELECT)
 $q_leaderboard = mysqli_query($koneksi, "
-    SELECT s.id, s.nama, COUNT(p.id) AS total_pinjam 
+    SELECT s.id, s.nama, s.kelas, COUNT(p.id) AS total_pinjam 
     FROM siswa s 
     LEFT JOIN peminjaman p ON s.id = p.siswa_id 
-    GROUP BY s.id, s.nama 
+    GROUP BY s.id, s.nama, s.kelas 
     ORDER BY total_pinjam DESC, s.nama ASC 
     LIMIT 10
 ");
+
+// FIX: Inisialisasi array $leaderboard_data
+$leaderboard_data = [];
+if ($q_leaderboard) {
+    while ($row = mysqli_fetch_assoc($q_leaderboard)) {
+        $leaderboard_data[] = $row;
+    }
+}
 ?>
 
 <!DOCTYPE html>
@@ -68,7 +76,7 @@ $q_leaderboard = mysqli_query($koneksi, "
 <body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col md:flex-row pb-20 md:pb-0">
 
 <!-- ================= SIDEBAR DESKTOP ================= -->
-    <aside class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 h-screen sticky top-0 border-r border-slate-800 flex-shrink-0 z-30">
+    <aside class="hidden md:flex flex-col w-64 bg-slate-900 text-slate-300 h-screen sticky top-0 border-r border-slate-800 flex-shrink-0 z-40 relative">
         <!-- Header Logo -->
         <div class="p-6 border-b border-slate-800 flex items-center gap-3 flex-shrink-0">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-orange to-brand-red flex items-center justify-center text-white text-xl shadow-lg">
@@ -91,7 +99,7 @@ $q_leaderboard = mysqli_query($koneksi, "
             </div>
         </div>
 
-        <!-- Menu Navigation Tabs (HANYA BAGIAN INI YANG BISA DI-SCROLL JIKA MENU SANGAT BANYAK) -->
+        <!-- Menu Navigation Tabs -->
         <nav class="flex-1 p-4 space-y-1.5 overflow-y-auto">
             <button id="btn-tab-katalog" onclick="switchTab('katalog')" class="w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
@@ -103,7 +111,6 @@ $q_leaderboard = mysqli_query($koneksi, "
                 <span>Riwayat Pinjam</span>
             </button>
 
-            <!-- Leaderboard Nav Button -->
             <button id="btn-tab-leaderboard" onclick="switchTab('leaderboard')" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 <span>Leaderboard</span>
@@ -120,7 +127,7 @@ $q_leaderboard = mysqli_query($koneksi, "
             </button>
         </nav>
 
-        <!-- Tombol Keluar (SELALU DI BAWAH / TERKUNCI) -->
+        <!-- Tombol Keluar -->
         <div class="p-4 border-t border-slate-800 flex-shrink-0">
             <button onclick="confirmLogout()" class="w-full flex items-center justify-center gap-2 bg-slate-800 hover:bg-red-600/20 text-slate-300 hover:text-red-400 text-xs py-3 rounded-xl font-bold transition border border-slate-700 hover:border-red-500/30">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
@@ -144,7 +151,6 @@ $q_leaderboard = mysqli_query($koneksi, "
                 <p id="page-subtitle" class="text-xs text-slate-400">Eksplorasi koleksi buku yang tersedia</p>
             </div>
 
-            <!-- Form Pencarian (Hanya Aktif di Katalog) -->
             <div id="wrapper-search-katalog" class="w-48 sm:w-80">
                 <form id="formSearch" action="" method="GET">
                     <div class="relative">
@@ -154,7 +160,6 @@ $q_leaderboard = mysqli_query($koneksi, "
                 </form>
             </div>
 
-            <!-- Form Pencarian (Hanya Aktif di Riwayat Tab) -->
             <div id="wrapper-search-riwayat" class="w-48 sm:w-80 hidden">
                 <div class="relative">
                     <input type="text" id="searchRiwayat" onkeyup="filterRiwayat()" placeholder="Cari di riwayat..." class="w-full pl-9 pr-4 py-2 bg-slate-100 border border-slate-200 rounded-xl text-xs shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-teal focus:bg-white transition" autocomplete="off">
@@ -252,7 +257,6 @@ $q_leaderboard = mysqli_query($koneksi, "
 
             <!-- ================= TAB 2: RIWAYAT PEMINJAMAN ================= -->
             <div id="tab-riwayat" class="hidden">
-                <!-- TABEL RIWAYAT RESPONSIF -->
                 <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
@@ -307,62 +311,136 @@ $q_leaderboard = mysqli_query($koneksi, "
                 </div>
             </div>
 
-            <!-- ================= TAB 3: LEADERBOARD ================= -->
-            <div id="tab-leaderboard" class="hidden">
-                <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-                    <div class="p-4 border-b border-slate-100 bg-slate-50/50">
-                        <h3 class="font-bold text-slate-800 text-sm">🏆 Peringkat Peminjam Terbanyak</h3>
+            <!-- TAB LEADERBOARD -->
+            <div id="tab-leaderboard" class="tab-content hidden space-y-6">
+                
+                <div class="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden shadow-xl border border-slate-800">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10">
+                        <div>
+                            <span class="inline-block px-3 py-1 bg-amber-500/20 text-amber-400 text-[10px] font-extrabold uppercase tracking-widest rounded-full mb-3 border border-amber-500/30">
+                                PERINGKAT LITERASI
+                            </span>
+                            <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2">
+                                🏆 Leaderboard Peminjam Terbanyak
+                            </h2>
+                            <p class="text-slate-400 text-xs sm:text-sm mt-1">Siswa teraktif meminjam buku di perpustakaan</p>
+                        </div>
+                        
+                        <div class="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 text-center min-w-[140px]">
+                            <p class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">TOTAL SISWA ACTIVE</p>
+                            <p class="text-2xl font-black text-amber-500 mt-0.5"><?= count($leaderboard_data); ?></p>
+                        </div>
                     </div>
+                </div>
+
+                <!-- PODIUM TOP 3 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end pt-4">
+                    
+                    <?php if (isset($leaderboard_data[1])): $rank2 = $leaderboard_data[1]; ?>
+                    <div class="order-2 md:order-1 bg-white rounded-3xl p-6 border border-slate-100 shadow-md flex flex-col items-center text-center relative">
+                        <div class="w-12 h-12 rounded-full bg-slate-200 text-slate-700 font-extrabold flex items-center justify-center text-lg shadow-inner mb-2 border-2 border-slate-300">
+                            2
+                        </div>
+                        <span class="text-xl mb-1">🥈</span>
+                        <h3 class="font-bold text-slate-800 text-base line-clamp-1"><?= htmlspecialchars($rank2['nama']); ?></h3>
+                        <p class="text-xs text-slate-400 font-medium mb-3"><?= htmlspecialchars($rank2['kelas'] ?? 'Siswa'); ?></p>
+                        <span class="px-4 py-1.5 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl border border-slate-200">
+                            <?= $rank2['total_pinjam']; ?> Buku
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (isset($leaderboard_data[0])): $rank1 = $leaderboard_data[0]; ?>
+                    <div class="order-1 md:order-2 bg-gradient-to-b from-amber-50/50 to-white rounded-3xl p-7 border-2 border-amber-400 shadow-xl flex flex-col items-center text-center relative -translate-y-2">
+                        <span class="absolute -top-3 px-3 py-0.5 bg-amber-500 text-white font-extrabold text-[10px] rounded-full uppercase tracking-wider shadow">
+                            TOP READER
+                        </span>
+                        <div class="w-14 h-14 rounded-full bg-amber-500 text-white font-black flex items-center justify-center text-xl shadow-lg shadow-amber-500/30 mb-2 mt-1">
+                            1
+                        </div>
+                        <span class="text-2xl mb-1">👑</span>
+                        <h3 class="font-extrabold text-slate-900 text-lg line-clamp-1"><?= htmlspecialchars($rank1['nama']); ?></h3>
+                        <p class="text-xs text-slate-400 font-medium mb-4"><?= htmlspecialchars($rank1['kelas'] ?? 'Siswa'); ?></p>
+                        <span class="px-5 py-2 bg-amber-500 text-white font-bold text-xs rounded-xl shadow-md shadow-amber-500/20">
+                            <?= $rank1['total_pinjam']; ?> Buku
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
+                    <?php if (isset($leaderboard_data[2])): $rank3 = $leaderboard_data[2]; ?>
+                    <div class="order-3 bg-white rounded-3xl p-6 border border-slate-100 shadow-md flex flex-col items-center text-center relative">
+                        <div class="w-12 h-12 rounded-full bg-amber-100 text-amber-800 font-extrabold flex items-center justify-center text-lg shadow-inner mb-2 border-2 border-amber-200">
+                            3
+                        </div>
+                        <span class="text-xl mb-1">🥉</span>
+                        <h3 class="font-bold text-slate-800 text-base line-clamp-1"><?= htmlspecialchars($rank3['nama']); ?></h3>
+                        <p class="text-xs text-slate-400 font-medium mb-3"><?= htmlspecialchars($rank3['kelas'] ?? 'Siswa'); ?></p>
+                        <span class="px-4 py-1.5 bg-amber-50/80 text-amber-700 font-bold text-xs rounded-xl border border-amber-200/60">
+                            <?= $rank3['total_pinjam']; ?> Buku
+                        </span>
+                    </div>
+                    <?php endif; ?>
+
+                </div>
+
+                <div class="bg-white rounded-3xl p-6 border border-slate-100 shadow-sm">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                        <h3 class="font-extrabold text-slate-800 text-base">Daftar Seluruh Peringkat Siswa</h3>
+                        <div class="relative min-w-[240px]">
+                            <input type="text" id="search-leaderboard" placeholder="Cari nama siswa..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-orange/30 focus:border-brand-orange outline-none transition">
+                            <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                    </div>
+
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left text-xs">
-                            <thead class="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
-                                <tr>
-                                    <th class="p-4 w-16 text-center">Posisi</th>
-                                    <th class="p-4">Nama Siswa</th>
-                                    <th class="p-4 text-center">Total Pinjam</th>
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="text-[11px] font-bold text-slate-400 uppercase border-b border-slate-100">
+                                    <th class="py-3 px-4">RANK</th>
+                                    <th class="py-3 px-4">NAMA SISWA</th>
+                                    <th class="py-3 px-4">KELAS</th>
+                                    <th class="py-3 px-4">QTY PEMINJAMAN</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-slate-100">
-                                <?php 
-                                $rank = 1;
-                                if ($q_leaderboard && mysqli_num_rows($q_leaderboard) > 0):
-                                    while ($lb = mysqli_fetch_assoc($q_leaderboard)):
-                                        $is_me = ($lb['id'] == $siswa_id);
+                            <tbody class="divide-y divide-slate-100 text-xs font-medium text-slate-700">
+                                <?php foreach ($leaderboard_data as $index => $row): 
+                                    $rank = $index + 1;
+                                    $is_current_user = ($row['nama'] == $nama_user);
                                 ?>
-                                    <tr class="hover:bg-slate-50/80 transition <?= $is_me ? 'bg-brand-orange/5 font-semibold' : ''; ?>">
-                                        <td class="p-4 text-center font-bold text-slate-600">
-                                            <?php 
-                                                if ($rank == 1) echo '🥇';
-                                                elseif ($rank == 2) echo '🥈';
-                                                elseif ($rank == 3) echo '🥉';
-                                                else echo '#'.$rank;
-                                            ?>
-                                        </td>
-                                        <td class="p-4 text-slate-800 flex items-center gap-2">
-                                            <span><?= htmlspecialchars($lb['nama']); ?></span>
-                                            <?php if ($is_me): ?>
-                                                <span class="bg-brand-orange text-white text-[9px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">
-                                                    Saya
-                                                </span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td class="p-4 text-center font-bold text-brand-teal">
-                                            <?= $lb['total_pinjam']; ?> Buku
-                                        </td>
-                                    </tr>
-                                <?php 
-                                    $rank++;
-                                    endwhile;
-                                else:
-                                ?>
-                                    <tr>
-                                        <td colspan="3" class="p-8 text-center text-slate-400">Belum ada data leaderboard.</td>
-                                    </tr>
-                                <?php endif; ?>
+                                <tr class="hover:bg-slate-50/80 transition <?= $is_current_user ? 'bg-amber-50/50 font-bold' : ''; ?>">
+                                    <td class="py-3.5 px-4">
+                                        <?php if($rank == 1): ?>
+                                            <span class="w-7 h-7 rounded-full bg-amber-500 text-white font-extrabold inline-flex items-center justify-center text-xs shadow">1</span>
+                                        <?php elseif($rank == 2): ?>
+                                            <span class="w-7 h-7 rounded-full bg-slate-300 text-slate-700 font-extrabold inline-flex items-center justify-center text-xs">2</span>
+                                        <?php elseif($rank == 3): ?>
+                                            <span class="w-7 h-7 rounded-full bg-amber-200 text-amber-800 font-extrabold inline-flex items-center justify-center text-xs">3</span>
+                                        <?php else: ?>
+                                            <span class="text-slate-400 font-bold px-2">#<?= $rank; ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="py-3.5 px-4 font-bold text-slate-800 flex items-center gap-2">
+                                        <?= htmlspecialchars($row['nama']); ?>
+                                        <?php if ($is_current_user): ?>
+                                            <span class="px-2 py-0.5 bg-brand-orange text-white text-[10px] font-bold rounded-full">Saya</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    
+                                    <!-- KOLOM KELAS TAMBAHAN -->
+                                    <td class="py-3.5 px-4 text-slate-500 font-medium">
+                                        <?= htmlspecialchars($row['kelas'] ?? '-'); ?>
+                                    </td>
+
+                                    <td class="py-3.5 px-4 font-extrabold text-brand-teal">
+                                        <?= $row['total_pinjam']; ?> Buku
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
                             </tbody>
                         </table>
                     </div>
                 </div>
+
             </div>
 
         </div>
@@ -452,7 +530,6 @@ $q_leaderboard = mysqli_query($koneksi, "
             const searchKatalog = document.getElementById('wrapper-search-katalog');
             const searchRiwayat = document.getElementById('wrapper-search-riwayat');
 
-            // Reset style navigasi desktop & mobile
             [btnKatalog, btnRiwayat, btnLeaderboard].forEach(b => {
                 if(b) b.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition";
             });
@@ -460,7 +537,6 @@ $q_leaderboard = mysqli_query($koneksi, "
                 if(b) b.className = "flex flex-col items-center gap-1 text-slate-500 hover:text-slate-800 font-medium";
             });
 
-            // Sembunyikan semua tab & search
             tabKatalog.classList.add('hidden');
             tabRiwayat.classList.add('hidden');
             tabLeaderboard.classList.add('hidden');
@@ -502,6 +578,17 @@ $q_leaderboard = mysqli_query($koneksi, "
                 row.style.display = (judul.includes(input) || penulis.includes(input)) ? "" : "none";
             });
         }
+
+        // Live Search Leaderboard JS
+        document.getElementById('search-leaderboard')?.addEventListener('keyup', function() {
+            let value = this.value.toLowerCase();
+            let rows = document.querySelectorAll('#tab-leaderboard tbody tr');
+            
+            rows.forEach(row => {
+                let nama = row.children[1].textContent.toLowerCase();
+                row.style.display = nama.includes(value) ? '' : 'none';
+            });
+        });
 
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
