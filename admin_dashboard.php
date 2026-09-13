@@ -764,6 +764,9 @@ if (isset($_POST['kirim_peringatan'])) {
                 <button onclick="openTab('buku-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
                     📚 Daftar Buku
                 </button>
+                <button onclick="openTab('review-tab', this)" class="tab-btn shrink-0 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 px-5 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition">
+                    ⭐ Daftar Ulasan Buku
+                </button>
             </div>
 
             <!-- TAB 1: RIWAYAT PEMINJAMAN -->
@@ -952,6 +955,104 @@ if (isset($_POST['kirim_peringatan'])) {
                             <?php endwhile; else: ?>
                                 <tr id="emptyBukuRow">
                                     <td colspan="4" class="p-6 text-center text-slate-400 text-xs sm:text-sm">Belum ada buku yang terdaftar.</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: DAFTAR ULASAN BUKU -->
+            <div id="review-tab" class="tab-content hidden bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
+                <div class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 mb-5">
+                    <h2 class="text-base sm:text-lg font-bold text-brand-navy">Daftar Ulasan & Review Buku</h2>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs sm:text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] sm:text-xs tracking-wider">
+                            <tr>
+                                <th class="p-3 rounded-l-xl">Nama Siswa</th>
+                                <th class="p-3">Judul Buku</th>
+                                <th class="p-3">Rating</th>
+                                <th class="p-3 text-center">Ulasan</th>
+                                <th class="p-3 rounded-r-xl">Tanggal</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <?php
+                            $q_all_review = mysqli_query($koneksi, "
+                                SELECT r.*, s.nama AS nama_siswa, b.judul AS judul_buku 
+                                FROM review_buku r
+                                JOIN siswa s ON r.siswa_id = s.id
+                                JOIN buku b ON r.buku_id = b.id
+                                ORDER BY r.id DESC
+                            ");
+
+                            if (mysqli_num_rows($q_all_review) > 0):
+                                while ($rv = mysqli_fetch_assoc($q_all_review)):
+                            ?>
+                                <tr class="hover:bg-slate-50 transition">
+                                    <td class="p-3 font-semibold text-slate-800"><?= htmlspecialchars($rv['nama_siswa']); ?></td>
+                                    <td class="p-3 text-slate-700"><?= htmlspecialchars($rv['judul_buku']); ?></td>
+                                    <td class="p-3 text-amber-500 font-bold"><?= str_repeat('⭐', $rv['rating']); ?></td>
+                                    
+                                    <!-- TOMBOL POP-UP ULASAN -->
+                                    <td class="p-3 text-center">
+                                        <button onclick="openModal('modal-ulasan-<?= $rv['id']; ?>')" class="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white px-3 py-1.5 rounded-xl font-bold text-xs transition duration-200">
+                                            💬 Lihat Ulasan
+                                        </button>
+                                    </td>
+
+                                    <td class="p-3 text-slate-400 whitespace-nowrap"><?= date('d-m-Y H:i', strtotime($rv['created_at'])); ?></td>
+                                </tr>
+
+                                <!-- MODAL POP-UP DETAIL ULASAN -->
+                                <div id="modal-ulasan-<?= $rv['id']; ?>" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+                                    <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl relative border border-slate-100">
+                                        <!-- Tombol Close -->
+                                        <button onclick="closeModal('modal-ulasan-<?= $rv['id']; ?>')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+
+                                        <!-- Header Modal -->
+                                        <div class="border-b border-slate-100 pb-3">
+                                            <h3 class="font-bold text-base text-slate-800">Detail Ulasan Buku</h3>
+                                            <p class="text-xs text-slate-400"><?= htmlspecialchars($rv['judul_buku']); ?></p>
+                                        </div>
+
+                                        <!-- Info Pengulas & Rating -->
+                                        <div class="flex justify-between items-center bg-slate-50 p-3 rounded-2xl">
+                                            <div>
+                                                <p class="text-[10px] text-slate-400 uppercase font-bold">Pengulas</p>
+                                                <p class="text-xs font-bold text-slate-800"><?= htmlspecialchars($rv['nama_siswa']); ?></p>
+                                            </div>
+                                            <div class="text-right">
+                                                <p class="text-[10px] text-slate-400 uppercase font-bold">Rating</p>
+                                                <p class="text-xs text-amber-500 font-bold"><?= str_repeat('⭐', $rv['rating']); ?></p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Isi Ulasan -->
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-500 mb-1">Isi Ulasan:</label>
+                                            <div class="bg-slate-50 p-4 rounded-2xl text-xs text-slate-700 leading-relaxed max-h-48 overflow-y-auto border border-slate-100">
+                                                "<?= nl2br(htmlspecialchars($rv['ulasan'])); ?>"
+                                            </div>
+                                        </div>
+
+                                        <!-- Footer Modal -->
+                                        <div class="flex justify-end border-t border-slate-100 pt-3">
+                                            <button type="button" onclick="closeModal('modal-ulasan-<?= $rv['id']; ?>')" class="bg-slate-100 text-slate-600 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition">
+                                                Tutup
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php 
+                                endwhile; 
+                            else: 
+                            ?>
+                                <tr>
+                                    <td colspan="5" class="p-6 text-center text-slate-400 text-xs">Belum ada ulasan buku yang diberikan oleh siswa.</td>
                                 </tr>
                             <?php endif; ?>
                         </tbody>
@@ -1446,6 +1547,24 @@ if (isset($_POST['kirim_peringatan'])) {
                 }
             });
             return false;
+        }
+
+        // Fungsi Buka Modal Pop-up Ulasan
+        function openModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        // Fungsi Tutup Modal Pop-up (Disesuaikan agar mendukung class flex)
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
         }
 
         setInterval(updateCountdown, 1000);

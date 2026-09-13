@@ -7,6 +7,58 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'siswa') {
     exit;
 }
 
+// Aksi: Simpan Review / Ulasan Buku oleh Siswa
+if (isset($_POST['simpan_review'])) {
+    $siswa_id_input = intval($_POST['siswa_id']);
+    $buku_id_input  = intval($_POST['buku_id']);
+    $rating_input   = intval($_POST['rating']);
+    $ulasan_input   = mysqli_real_escape_string($koneksi, trim($_POST['ulasan']));
+
+    // Verifikasi agar siswa hanya mengulas buku miliknya yang sudah selesai dipinjam
+    $q_cek_pinjam = mysqli_query($koneksi, "
+        SELECT id FROM peminjaman 
+        WHERE siswa_id = '$siswa_id_input' AND buku_id = '$buku_id_input' AND status_transaksi = 'selesai'
+    ");
+
+    if (mysqli_num_rows($q_cek_pinjam) > 0) {
+        // Cek apakah sudah pernah diulas
+        $q_cek_review = mysqli_query($koneksi, "
+            SELECT id FROM review_buku 
+            WHERE siswa_id = '$siswa_id_input' AND buku_id = '$buku_id_input'
+        ");
+
+        if (mysqli_num_rows($q_cek_review) == 0) {
+            $sql_ins_review = "INSERT INTO review_buku (siswa_id, buku_id, rating, ulasan) 
+                               VALUES ('$siswa_id_input', '$buku_id_input', '$rating_input', '$ulasan_input')";
+            if (mysqli_query($koneksi, $sql_ins_review)) {
+                echo "<script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        Swal.fire('Berhasil!', 'Ulasan berhasil disimpan. Kamu mendapatkan +20 Poin!', 'success')
+                        .then(() => { window.location.href='siswa_dashboard.php'; });
+                    });
+                </script>";
+            }
+        }
+    }
+}
+
+// Query Leaderboard (Total Pinjam * 10 + Total Review * 20)
+$q_leaderboard = mysqli_query($koneksi, "
+    SELECT 
+        s.id,
+        s.nama,
+        s.kelas,
+        COUNT(DISTINCT p.id) AS total_pinjam,
+        COUNT(DISTINCT r.id) AS total_review,
+        ((COUNT(DISTINCT p.id) * 10) + (COUNT(DISTINCT r.id) * 20)) AS total_pinjam
+    FROM siswa s
+    LEFT JOIN peminjaman p ON s.id = p.siswa_id
+    LEFT JOIN review_buku r ON s.id = r.siswa_id
+    GROUP BY s.id, s.nama, s.kelas
+    ORDER BY total_pinjam DESC, s.nama ASC
+    LIMIT 10
+");
+
 $siswa_id = $_SESSION['id'] ?? $_SESSION['siswa_id'] ?? $_SESSION['user_id'] ?? 0;
 $nama_user = $_SESSION['nama'] ?? 'Siswa';
 $siswa_id_escaped = mysqli_real_escape_string($koneksi, $siswa_id);
@@ -28,14 +80,16 @@ $q_total_buku = mysqli_query($koneksi, "SELECT COUNT(*) AS total FROM buku");
 $d_total_buku = mysqli_fetch_assoc($q_total_buku);
 $total_buku = $d_total_buku['total'] ?? 0;
 
-// Query Leaderboard (Tambahkan s.kelas pada SELECT)
-$q_leaderboard = mysqli_query($koneksi, "
-    SELECT s.id, s.nama, s.kelas, COUNT(p.id) AS total_pinjam 
-    FROM siswa s 
-    LEFT JOIN peminjaman p ON s.id = p.siswa_id 
-    GROUP BY s.id, s.nama, s.kelas 
-    ORDER BY total_pinjam DESC, s.nama ASC 
-    LIMIT 10
+// Query mengambil buku yang SUDAH dikembalikan tapi BELUM di-review oleh siswa ini
+$q_buku_review = mysqli_query($koneksi, "
+    SELECT DISTINCT b.id, b.judul, b.penulis, b.cover 
+    FROM peminjaman p
+    JOIN buku b ON p.buku_id = b.id
+    WHERE p.siswa_id = '$siswa_id_escaped' 
+      AND p.status_transaksi = 'selesai'
+      AND b.id NOT IN (
+          SELECT buku_id FROM review_buku WHERE siswa_id = '$siswa_id_escaped'
+      )
 ");
 
 // FIX: Inisialisasi array $leaderboard_data
@@ -114,6 +168,14 @@ if ($q_leaderboard) {
             <button id="btn-tab-leaderboard" onclick="switchTab('leaderboard')" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                 <span>Leaderboard</span>
+            </button>
+
+            <!-- Button Tab Review Buku -->
+            <button id="btn-tab-review" onclick="switchTab('review')" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/>
+                </svg>
+                <span>Review Buku</span>
             </button>
 
             <button onclick="openModal('modal-notifikasi')" class="w-full flex items-center justify-between px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition">
@@ -443,6 +505,76 @@ if ($q_leaderboard) {
 
             </div>
 
+            <!-- ================= TAB 4: REVIEW BUKU ================= -->
+            <div id="tab-review" class="hidden space-y-6">
+                <div class="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm">
+                    <h2 class="text-lg font-bold text-slate-800">Ulas Buku & Dapatkan Poin</h2>
+                    <p class="text-xs text-slate-400 mt-1">Berikan ulasan pada buku yang sudah selesai kamu pinjam untuk mendapatkan +20 poin leaderboard.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <?php if (mysqli_num_rows($q_buku_review) > 0): ?>
+                        <?php while ($br = mysqli_fetch_assoc($q_buku_review)): 
+                            $cover_review = !empty($br['cover']) && file_exists('uploads/' . $br['cover']) ? 'uploads/' . $br['cover'] : 'https://via.placeholder.com/300x400?text=No+Cover';
+                        ?>
+                            <!-- CARD BUKU REVIEW -->
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 flex gap-4 shadow-sm items-center">
+                                <img src="<?= $cover_review; ?>" class="w-16 h-20 object-cover rounded-xl border border-slate-100">
+                                <div class="flex-1">
+                                    <h3 class="font-bold text-sm text-slate-800 line-clamp-1"><?= htmlspecialchars($br['judul']); ?></h3>
+                                    <p class="text-xs text-slate-400">Penulis: <?= htmlspecialchars($br['penulis']); ?></p>
+                                    <button onclick="openModal('modal-review-<?= $br['id']; ?>')" class="mt-2 bg-brand-teal text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-teal-600 transition">
+                                        Tulis Ulasan
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- MODAL REVIEW BUKU -->
+                            <div id="modal-review-<?= $br['id']; ?>" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+                                <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative border border-slate-100">
+                                    <button onclick="closeModal('modal-review-<?= $br['id']; ?>')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+
+                                    <div class="border-b border-slate-100 pb-3">
+                                        <h3 class="font-bold text-base text-slate-800">Ulas Buku: <?= htmlspecialchars($br['judul']); ?></h3>
+                                        <p class="text-xs text-slate-400">Bagikan pengalaman membacamu untuk mendapatkan +20 poin</p>
+                                    </div>
+
+                                    <form action="" method="POST" class="space-y-4">
+                                        <input type="hidden" name="siswa_id" value="<?= $siswa_id_escaped; ?>">
+                                        <input type="hidden" name="buku_id" value="<?= $br['id']; ?>">
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 mb-1">Rating Bintang</label>
+                                            <select name="rating" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-brand-teal focus:outline-none">
+                                                <option value="5">⭐⭐⭐⭐⭐ (5 - Sangat Bagus)</option>
+                                                <option value="4">⭐⭐⭐⭐ (4 - Bagus)</option>
+                                                <option value="3">⭐⭐⭐ (3 - Cukup)</option>
+                                                <option value="2">⭐⭐ (2 - Kurang)</option>
+                                                <option value="1">⭐ (1 - Buruk)</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label class="block text-xs font-bold text-slate-700 mb-1">Ulasan / Pendapat Kamu</label>
+                                            <textarea name="ulasan" rows="3" required placeholder="Tulis pendapat kamu tentang buku ini..." class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-brand-teal focus:outline-none"></textarea>
+                                        </div>
+
+                                        <div class="flex justify-end gap-2 border-t border-slate-100 pt-3">
+                                            <button type="button" onclick="closeModal('modal-review-<?= $br['id']; ?>')" class="bg-slate-100 text-slate-600 text-xs px-4 py-2 rounded-xl font-bold hover:bg-slate-200 transition">Batal</button>
+                                            <button type="submit" name="simpan_review" class="bg-brand-teal text-white text-xs px-4 py-2 rounded-xl font-bold hover:bg-teal-600 transition">Kirim Ulasan</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        <?php endwhile; ?>
+                    <?php else: ?>
+                        <div class="col-span-full bg-white p-8 rounded-2xl text-center text-slate-400 border border-slate-200 text-xs">
+                            Tidak ada buku yang perlu diulas saat ini.
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -515,14 +647,17 @@ if ($q_leaderboard) {
             const tabKatalog = document.getElementById('tab-katalog');
             const tabRiwayat = document.getElementById('tab-riwayat');
             const tabLeaderboard = document.getElementById('tab-leaderboard');
+            const tabReview = document.getElementById('tab-review'); // Tambahan: Element Tab Review
 
             const btnKatalog = document.getElementById('btn-tab-katalog');
             const btnRiwayat = document.getElementById('btn-tab-riwayat');
             const btnLeaderboard = document.getElementById('btn-tab-leaderboard');
+            const btnReview = document.getElementById('btn-tab-review'); // Tambahan: Button Tab Review
 
             const mbBtnKatalog = document.getElementById('mb-btn-katalog');
             const mbBtnRiwayat = document.getElementById('mb-btn-riwayat');
             const mbBtnLeaderboard = document.getElementById('mb-btn-leaderboard');
+            const mbBtnReview = document.getElementById('mb-btn-review'); // Tambahan: Button Mobile Review (opsional)
 
             const title = document.getElementById('page-title');
             const subtitle = document.getElementById('page-subtitle');
@@ -530,42 +665,56 @@ if ($q_leaderboard) {
             const searchKatalog = document.getElementById('wrapper-search-katalog');
             const searchRiwayat = document.getElementById('wrapper-search-riwayat');
 
-            [btnKatalog, btnRiwayat, btnLeaderboard].forEach(b => {
+            // Reset class semua button sidebar
+            [btnKatalog, btnRiwayat, btnLeaderboard, btnReview].forEach(b => {
                 if(b) b.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-slate-800 font-medium text-xs rounded-xl transition";
             });
-            [mbBtnKatalog, mbBtnRiwayat, mbBtnLeaderboard].forEach(b => {
+            
+            // Reset class semua button bottom nav (mobile)
+            [mbBtnKatalog, mbBtnRiwayat, mbBtnLeaderboard, mbBtnReview].forEach(b => {
                 if(b) b.className = "flex flex-col items-center gap-1 text-slate-500 hover:text-slate-800 font-medium";
             });
 
-            tabKatalog.classList.add('hidden');
-            tabRiwayat.classList.add('hidden');
-            tabLeaderboard.classList.add('hidden');
-            searchKatalog.classList.add('hidden');
-            searchRiwayat.classList.add('hidden');
+            // Sembunyikan semua tab & search bar
+            if(tabKatalog) tabKatalog.classList.add('hidden');
+            if(tabRiwayat) tabRiwayat.classList.add('hidden');
+            if(tabLeaderboard) tabLeaderboard.classList.add('hidden');
+            if(tabReview) tabReview.classList.add('hidden'); // Sembunyikan tab review
 
+            if(searchKatalog) searchKatalog.classList.add('hidden');
+            if(searchRiwayat) searchRiwayat.classList.add('hidden');
+
+            // Logika Tab Aktif
             if (tabName === 'katalog') {
-                tabKatalog.classList.remove('hidden');
-                searchKatalog.classList.remove('hidden');
-                title.innerText = "Katalog Digital";
-                subtitle.innerText = "Eksplorasi koleksi buku yang tersedia";
+                if(tabKatalog) tabKatalog.classList.remove('hidden');
+                if(searchKatalog) searchKatalog.classList.remove('hidden');
+                if(title) title.innerText = "Katalog Digital";
+                if(subtitle) subtitle.innerText = "Eksplorasi koleksi buku yang tersedia";
 
-                btnKatalog.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
-                mbBtnKatalog.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
+                if(btnKatalog) btnKatalog.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
+                if(mbBtnKatalog) mbBtnKatalog.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
             } else if (tabName === 'riwayat') {
-                tabRiwayat.classList.remove('hidden');
-                searchRiwayat.classList.remove('hidden');
-                title.innerText = "Riwayat Peminjaman";
-                subtitle.innerText = "Daftar seluruh buku yang sedang & pernah kamu pinjam";
+                if(tabRiwayat) tabRiwayat.classList.remove('hidden');
+                if(searchRiwayat) searchRiwayat.classList.remove('hidden');
+                if(title) title.innerText = "Riwayat Peminjaman";
+                if(subtitle) subtitle.innerText = "Daftar seluruh buku yang sedang & pernah kamu pinjam";
 
-                btnRiwayat.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
-                mbBtnRiwayat.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
+                if(btnRiwayat) btnRiwayat.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
+                if(mbBtnRiwayat) mbBtnRiwayat.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
             } else if (tabName === 'leaderboard') {
-                tabLeaderboard.classList.remove('hidden');
-                title.innerText = "Leaderboard Siswa";
-                subtitle.innerText = "Peringkat siswa dengan aktivitas peminjaman buku terbanyak";
+                if(tabLeaderboard) tabLeaderboard.classList.remove('hidden');
+                if(title) title.innerText = "Leaderboard Siswa";
+                if(subtitle) subtitle.innerText = "Peringkat siswa dengan aktivitas peminjaman buku terbanyak";
 
-                btnLeaderboard.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
-                mbBtnLeaderboard.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
+                if(btnLeaderboard) btnLeaderboard.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
+                if(mbBtnLeaderboard) mbBtnLeaderboard.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
+            } else if (tabName === 'review') { // Kondisi baru untuk tab review
+                if(tabReview) tabReview.classList.remove('hidden');
+                if(title) title.innerText = "Review Buku";
+                if(subtitle) subtitle.innerText = "Berikan ulasan buku yang sudah selesai kamu baca dan dapatkan +20 poin";
+
+                if(btnReview) btnReview.className = "w-full flex items-center gap-3 px-4 py-3 font-bold text-xs rounded-xl transition bg-brand-orange/10 text-brand-orange border border-brand-orange/20";
+                if(mbBtnReview) mbBtnReview.className = "flex flex-col items-center gap-1 text-brand-orange font-bold";
             }
         }
 
