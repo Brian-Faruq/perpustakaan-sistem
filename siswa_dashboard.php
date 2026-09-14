@@ -75,6 +75,26 @@ $q_notif = mysqli_query($koneksi, "SELECT * FROM notifikasi WHERE siswa_id = '$s
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
 $search_escaped = mysqli_real_escape_string($koneksi, $search);
 
+// =========================================================================
+// QUERY UTAMA AMBIL KATALOG BUKU + RATING DINAMIS & TOTAL REVIEW (DITAMBAHKAN)
+// =========================================================================
+$query_katalog_buku = "
+    SELECT 
+        b.*, 
+        COALESCE(AVG(r.rating), 0) AS rating_rata, 
+        COUNT(r.id) AS total_review 
+    FROM buku b 
+    LEFT JOIN review_buku r ON b.id = r.buku_id 
+";
+
+if (!empty($search_escaped)) {
+    $query_katalog_buku .= " WHERE b.judul LIKE '%$search_escaped%' OR b.penulis LIKE '%$search_escaped%'";
+}
+
+$query_katalog_buku .= " GROUP BY b.id ORDER BY b.id DESC";
+$q_buku = mysqli_query($koneksi, $query_katalog_buku);
+// =========================================================================
+
 // Hitung Total Buku
 $q_total_buku = mysqli_query($koneksi, "SELECT COUNT(*) AS total FROM buku");
 $d_total_buku = mysqli_fetch_assoc($q_total_buku);
@@ -226,14 +246,20 @@ if ($q_leaderboard) {
                 </div>
             </div>
 
-            <!-- Grid Koleksi Buku -->
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <?php
-                $sql_buku = "SELECT * FROM buku";
+                // Kueri diperbarui untuk menghitung rating & ulasan dinamis dari tabel review_buku
+                $sql_buku = "SELECT b.*, 
+                                    COALESCE(AVG(r.rating), 0) AS rating_rata, 
+                                    COUNT(r.id) AS total_review 
+                            FROM buku b 
+                            LEFT JOIN review_buku r ON b.id = r.buku_id";
+
                 if (!empty($search_escaped)) {
-                    $sql_buku .= " WHERE judul LIKE '%$search_escaped%' OR penulis LIKE '%$search_escaped%'";
+                    $sql_buku .= " WHERE b.judul LIKE '%$search_escaped%' OR b.penulis LIKE '%$search_escaped%'";
                 }
-                $sql_buku .= " ORDER BY id DESC";
+
+                $sql_buku .= " GROUP BY b.id ORDER BY b.id DESC";
 
                 $q_buku = mysqli_query($koneksi, $sql_buku);
 
@@ -250,6 +276,24 @@ if ($q_leaderboard) {
                             </div>
                             <h3 class="font-bold text-slate-800 text-xs sm:text-sm line-clamp-2 leading-snug"><?= htmlspecialchars($b['judul']); ?></h3>
                             <p class="text-[11px] text-slate-400 font-medium mt-1 truncate">✍️ <?= htmlspecialchars($b['penulis']); ?></p>
+                        </div>
+                        <!-- Rating & Review Dinamis -->
+                        <div class="flex items-center gap-1.5 my-2">
+                            <div class="flex text-amber-400">
+                                <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                    <path d="M10 15.27L16.18 19l-1.64-7.03L20 7.24l-7.19-.61L10 0 7.19 6.63 0 7.24l5.46 5.00L3.82 19z"/>
+                                </svg>
+                            </div>
+                            
+                            <!-- Nilai Rata-rata Rating -->
+                            <span class="text-xs font-semibold text-slate-700">
+                                <?= $b['rating_rata'] > 0 ? number_format($b['rating_rata'], 1) : '0'; ?>
+                            </span>
+                            
+                            <!-- Total Ulasan -->
+                            <span class="text-[10px] text-slate-400">
+                                (<?= $b['total_review']; ?> ulasan)
+                            </span>
                         </div>
                         <button onclick="openSinopsisModal('<?= htmlspecialchars(addslashes($b['judul'])); ?>', '<?= htmlspecialchars(addslashes($b['sinopsis'])); ?>')" class="mt-3 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1.5 rounded-xl text-[11px] transition">
                             📖 Baca Sinopsis
