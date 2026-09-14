@@ -586,7 +586,7 @@ if (isset($_POST['kirim_peringatan'])) {
                         <p class="text-xs text-slate-400">Daftar peminjaman yang sedang berlangsung</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari kartu / nama..." autocomplete="off" class="border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm w-full sm:w-60 focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
+                        <input type="text" id="tapKartuReturn" onkeyup="filterPeminjamanTap()" onkeydown="preventRfidEnter(event)" placeholder="Cari kartu / nama..." autocomplete="off" class="border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm w-full sm:w-64 focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
                         <span class="bg-brand-orange/10 text-brand-orange border border-brand-orange/20 text-xs font-black px-3 py-2 rounded-xl whitespace-nowrap">
                             Total: <?= $total_pinjam; ?>
                         </span>
@@ -1068,13 +1068,21 @@ if (isset($_POST['kirim_peringatan'])) {
         <div id="view-leaderboard" class="main-view-section hidden space-y-6 max-w-4xl mx-auto">
             
             <?php
-            // Query Mengambil Peringkat Siswa Berdasarkan Jumlah Buku Yang Dipinjam
+            // Query Mengambil Peringkat Siswa Berdasarkan Poin (Total Pinjam * 10 + Total Review * 20)
             $q_leaderboard = mysqli_query($koneksi, "
-                SELECT s.id, s.nomor_kartu, s.nama, s.kelas, COUNT(p.id) AS total_pinjam
+                SELECT 
+                    s.id, 
+                    s.nomor_kartu, 
+                    s.nama, 
+                    s.kelas, 
+                    COUNT(DISTINCT p.id) AS total_pinjam,
+                    COUNT(DISTINCT r.id) AS total_review,
+                    ((COUNT(DISTINCT p.id) * 10) + (COUNT(DISTINCT r.id) * 20)) AS total_poin
                 FROM siswa s
                 LEFT JOIN peminjaman p ON s.id = p.siswa_id
-                GROUP BY s.id
-                ORDER BY total_pinjam DESC, s.nama ASC
+                LEFT JOIN review_buku r ON s.id = r.siswa_id
+                GROUP BY s.id, s.nomor_kartu, s.nama, s.kelas
+                ORDER BY total_poin DESC, s.nama ASC
             ");
 
             $leaderboard_data = [];
@@ -1087,8 +1095,8 @@ if (isset($_POST['kirim_peringatan'])) {
             <div class="bg-gradient-to-r from-brand-navy via-slate-800 to-brand-navy text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                     <span class="bg-brand-amber/20 text-brand-amber border border-brand-amber/30 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">Peringkat Literasi</span>
-                    <h2 class="text-xl sm:text-2xl font-black text-white">🏆 Leaderboard Peminjam Terbanyak</h2>
-                    <p class="text-xs text-slate-300 mt-1">Siswa teraktif meminjam buku di perpustakaan</p>
+                    <h2 class="text-xl sm:text-2xl font-black text-white">🏆 Leaderboard Poin Terbanyak</h2>
+                    <p class="text-xs text-slate-300 mt-1">Siswa teraktif meminjam buku & memberikan ulasan</p>
                 </div>
                 <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center min-w-[120px]">
                     <p class="text-[10px] text-slate-300 font-bold uppercase">Total Siswa Active</p>
@@ -1110,7 +1118,7 @@ if (isset($_POST['kirim_peringatan'])) {
                         <p class="font-bold text-slate-800 text-sm truncate w-full"><?= htmlspecialchars($leaderboard_data[1]['nama']); ?></p>
                         <p class="text-[11px] text-slate-400 font-medium"><?= htmlspecialchars($leaderboard_data[1]['kelas']); ?></p>
                         <span class="mt-3 bg-slate-100 text-slate-700 font-extrabold text-xs px-3 py-1.5 rounded-xl border border-slate-200">
-                            <?= $leaderboard_data[1]['total_pinjam']; ?> Buku
+                            <?= $leaderboard_data[1]['total_poin']; ?> Poin
                         </span>
                     </div>
                     <?php endif; ?>
@@ -1128,7 +1136,7 @@ if (isset($_POST['kirim_peringatan'])) {
                         <p class="font-black text-brand-navy text-base truncate w-full"><?= htmlspecialchars($leaderboard_data[0]['nama']); ?></p>
                         <p class="text-xs text-slate-500 font-medium"><?= htmlspecialchars($leaderboard_data[0]['kelas']); ?></p>
                         <span class="mt-3 bg-brand-amber text-white font-black text-xs px-4 py-1.5 rounded-xl shadow-md shadow-brand-amber/30">
-                            <?= $leaderboard_data[0]['total_pinjam']; ?> Buku
+                            <?= $leaderboard_data[0]['total_poin']; ?> Poin
                         </span>
                     </div>
                     <?php endif; ?>
@@ -1143,7 +1151,7 @@ if (isset($_POST['kirim_peringatan'])) {
                         <p class="font-bold text-slate-800 text-sm truncate w-full"><?= htmlspecialchars($leaderboard_data[2]['nama']); ?></p>
                         <p class="text-[11px] text-slate-400 font-medium"><?= htmlspecialchars($leaderboard_data[2]['kelas']); ?></p>
                         <span class="mt-3 bg-amber-50 text-amber-800 font-extrabold text-xs px-3 py-1.5 rounded-xl border border-amber-200">
-                            <?= $leaderboard_data[2]['total_pinjam']; ?> Buku
+                            <?= $leaderboard_data[2]['total_poin']; ?> Poin
                         </span>
                     </div>
                     <?php endif; ?>
@@ -1165,8 +1173,8 @@ if (isset($_POST['kirim_peringatan'])) {
                                 <th class="p-3 text-center rounded-l-xl w-16">Rank</th>
                                 <th class="p-3">Nama Siswa</th>
                                 <th class="p-3">Kelas</th>
-                                <th class="p-3 text-center">Nomor Kartu</th>
-                                <th class="p-3 text-center rounded-r-xl">Qty Peminjaman</th>
+                                <th class="p-3 text-center">Data Aktivitas</th>
+                                <th class="p-3 text-center rounded-r-xl">QTY POIN</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -1188,10 +1196,13 @@ if (isset($_POST['kirim_peringatan'])) {
                                     </td>
                                     <td class="p-3 font-semibold text-slate-800 cell-nama-leaderboard"><?= htmlspecialchars($ld['nama']); ?></td>
                                     <td class="p-3 text-slate-600"><?= htmlspecialchars($ld['kelas']); ?></td>
-                                    <td class="p-3 text-center font-mono text-brand-orange font-bold"><?= htmlspecialchars($ld['nomor_kartu']); ?></td>
+                                    <td class="p-3 text-center text-xs text-slate-500">
+                                        <span class="font-medium text-slate-700"><?= $ld['total_pinjam']; ?> buku</span> • 
+                                        <span class="font-medium text-slate-700"><?= $ld['total_review']; ?> review</span>
+                                    </td>
                                     <td class="p-3 text-center">
                                         <span class="bg-brand-teal/10 text-brand-teal font-extrabold text-xs px-3 py-1 rounded-full border border-brand-teal/20">
-                                            <?= $ld['total_pinjam']; ?> Buku
+                                            <?= $ld['total_poin']; ?> POIN
                                         </span>
                                     </td>
                                 </tr>
@@ -1558,7 +1569,7 @@ if (isset($_POST['kirim_peringatan'])) {
             }
         }
 
-        // Fungsi Tutup Modal Pop-up (Disesuaikan agar mendukung class flex)
+        // Fungsi Tutup Modal Pop-up
         function closeModal(modalId) {
             const modal = document.getElementById(modalId);
             if (modal) {
