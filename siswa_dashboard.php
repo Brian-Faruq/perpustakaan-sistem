@@ -214,7 +214,7 @@ if ($q_leaderboard) {
         <!-- HEADER TOP BAR -->
         <header class="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
             <div>
-                <h1 class="text-xl sm:text-2xl font-black text-slate-800">LiteraSync Portal</h1>
+                <h1 class="text-xl sm:text-2xl font-black text-slate-800">Portal Siswa</h1>
                 <p class="text-xs text-slate-500">Temukan buku favorit dan tingkatkan peringkat literasimu!</p>
             </div>
 
