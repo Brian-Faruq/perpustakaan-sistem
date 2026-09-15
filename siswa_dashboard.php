@@ -116,6 +116,9 @@ if ($q_leaderboard) {
     <title>Siswa Perpustakaan</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -133,6 +136,37 @@ if ($q_leaderboard) {
             }
         }
     </script>
+    <style>
+        .select2-container--default .select2-selection--single {
+            background-color: #f8fafc !important; /* bg-slate-50 */
+            border-color: #e2e8f0 !important; /* border-slate-200 */
+            border-radius: 0.75rem !important; /* rounded-xl */
+            height: 42px !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__rendered {
+            color: #334155 !important; /* text-slate-700 */
+            font-size: 0.875rem !important; /* text-sm */
+            padding-left: 0.75rem !important;
+        }
+        .select2-container--default .select2-selection--single .select2-selection__arrow {
+            height: 40px !important;
+            right: 8px !important;
+        }
+        .select2-dropdown {
+            border-color: #cbd5e1 !important;
+            border-radius: 0.75rem !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+            overflow: hidden !important;
+            font-size: 0.875rem !important;
+        }
+        .select2-search__field {
+            border-radius: 0.5rem !important;
+            padding: 6px !important;
+            outline: none !important;
+        }
+    </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 flex flex-col md:flex-row pb-20 md:pb-0">
 
@@ -488,7 +522,7 @@ if ($q_leaderboard) {
                         
                         <div>
                             <label class="block text-xs font-bold text-slate-600 mb-1">Pilih Buku yang Pernah Dipinjam:</label>
-                            <select name="buku_id" required class="w-full p-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
+                            <select name="buku_id" required id="select-buku-review" class="select2-buku w-full p-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal">
                                 <option value="">-- Pilih Buku --</option>
                                 <?php while ($br = mysqli_fetch_assoc($q_buku_review)): ?>
                                     <option value="<?= $br['id']; ?>"><?= htmlspecialchars($br['judul']); ?> (✍️ <?= htmlspecialchars($br['penulis']); ?>)</option>
@@ -712,6 +746,14 @@ if ($q_leaderboard) {
                 }
             }
         }
+
+        $(document).ready(function() {
+            $('#select-buku-review').select2({
+                placeholder: "-- Pilih atau Cari Buku --",
+                allowClear: true,
+                width: '100%'
+            });
+        });
     </script>
 </body>
 </html>
