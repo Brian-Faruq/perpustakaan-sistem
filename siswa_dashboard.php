@@ -412,9 +412,20 @@ if ($q_leaderboard) {
                 </div>
             <?php endif; ?>
 
-            <!-- Tabel Peringkat Lengkap -->
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
-                <h2 class="font-bold text-slate-800 text-base mb-4">Peringkat Teratas Siswa</h2>
+            <!-- Tabel Peringkat Lengkap + Live Search Input -->
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                    <h2 class="font-bold text-slate-800 text-base">Peringkat Teratas Siswa</h2>
+                    
+                    <!-- Live Search Bar Leaderboard -->
+                    <div class="w-full sm:w-72 relative">
+                        <input type="text" id="search-leaderboard-input" onkeyup="liveSearchLeaderboard()" placeholder="Cari nama atau kelas..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs sm:text-sm">
                         <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
@@ -431,7 +442,7 @@ if ($q_leaderboard) {
                                 $rank = 1;
                                 foreach ($leaderboard_data as $ld):
                             ?>
-                                <tr>
+                                <tr class="leaderboard-item" data-nama="<?= htmlspecialchars(strtolower($ld['nama'])); ?>" data-kelas="<?= htmlspecialchars(strtolower($ld['kelas'])); ?>">
                                     <td class="p-3 text-center font-bold">#<?= $rank; ?></td>
                                     <td class="p-3 font-semibold text-slate-800"><?= htmlspecialchars($ld['nama']); ?></td>
                                     <td class="p-3 text-slate-500"><?= htmlspecialchars($ld['kelas']); ?></td>
@@ -452,6 +463,11 @@ if ($q_leaderboard) {
                                     <td colspan="5" class="p-6 text-center text-slate-400 text-xs">Belum ada data peringkat.</td>
                                 </tr>
                             <?php endif; ?>
+
+                            <!-- Row Tampilan Jika Pencarian Tidak Ditemukan -->
+                            <tr id="no-leaderboard-search-result" class="hidden">
+                                <td colspan="5" class="p-6 text-center text-slate-400 text-xs">Siswa tidak ditemukan.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -654,6 +670,33 @@ if ($q_leaderboard) {
                 const status = row.getAttribute('data-status') || '';
 
                 if (judul.includes(keyword) || status.includes(keyword)) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+
+            if (emptyMessage) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    emptyMessage.classList.remove('hidden');
+                } else {
+                    emptyMessage.classList.add('hidden');
+                }
+            }
+        }
+
+        function liveSearchLeaderboard() {
+            const keyword = document.getElementById('search-leaderboard-input').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.leaderboard-item');
+            const emptyMessage = document.getElementById('no-leaderboard-search-result');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const nama = row.getAttribute('data-nama') || '';
+                const kelas = row.getAttribute('data-kelas') || '';
+
+                if (nama.includes(keyword) || kelas.includes(keyword)) {
                     row.classList.remove('hidden');
                     visibleCount++;
                 } else {
