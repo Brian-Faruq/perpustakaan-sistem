@@ -285,8 +285,20 @@ if ($q_leaderboard) {
         <!-- TAB 2: RIWAYAT PEMINJAMAN              -->
         <!-- --------------------------------------- -->
         <section id="tab-riwayat" class="hidden space-y-4">
-            <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm">
-                <h2 class="font-bold text-slate-800 text-base mb-4">Riwayat Peminjaman Buku</h2>
+            <div class="bg-white rounded-2xl border border-slate-200/80 p-5 shadow-sm space-y-4">
+                
+                <!-- Header & Live Search Bar Riwayat -->
+                <div class="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
+                    <h2 class="font-bold text-slate-800 text-base">Riwayat Peminjaman Buku</h2>
+                    
+                    <div class="w-full sm:w-72 relative">
+                        <input type="text" id="search-riwayat-input" onkeyup="liveSearchRiwayat()" placeholder="Cari judul buku atau status..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
+                        <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-xs sm:text-sm">
                         <thead class="bg-slate-50 text-slate-500 font-bold uppercase text-[10px]">
@@ -298,7 +310,7 @@ if ($q_leaderboard) {
                                 <th class="p-3 rounded-r-xl">Status</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-100">
+                        <tbody id="riwayat-table-body" class="divide-y divide-slate-100">
                             <?php
                             $q_my_history = mysqli_query($koneksi, "
                                 SELECT p.*, b.judul 
@@ -310,8 +322,9 @@ if ($q_leaderboard) {
 
                             if (mysqli_num_rows($q_my_history) > 0):
                                 while ($h = mysqli_fetch_assoc($q_my_history)):
+                                    $status_text = ($h['status_transaksi'] === 'berjalan') ? 'dipinjam' : 'selesai';
                             ?>
-                                <tr>
+                                <tr class="riwayat-item" data-judul="<?= htmlspecialchars(strtolower($h['judul'])); ?>" data-status="<?= $status_text; ?>">
                                     <td class="p-3 font-semibold text-slate-800"><?= htmlspecialchars($h['judul']); ?></td>
                                     <td class="p-3 text-slate-500"><?= date('d-m-Y', strtotime($h['tanggal_pinjam'])); ?></td>
                                     <td class="p-3 text-slate-500"><?= date('d-m-Y', strtotime($h['tanggal_jatuh_tempo'])); ?></td>
@@ -325,10 +338,15 @@ if ($q_leaderboard) {
                                     </td>
                                 </tr>
                             <?php endwhile; else: ?>
-                                <tr>
+                                <tr id="no-riwayat-data">
                                     <td colspan="5" class="p-6 text-center text-slate-400 text-xs">Belum ada riwayat peminjaman.</td>
                                 </tr>
                             <?php endif; ?>
+
+                            <!-- Row Tampilan jika hasil pencarian kosong -->
+                            <tr id="no-riwayat-search-result" class="hidden">
+                                <td colspan="5" class="p-6 text-center text-slate-400 text-xs">Peminjaman tidak ditemukan.</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -623,6 +641,33 @@ if ($q_leaderboard) {
                     window.location.href = 'index.php';
                 }
             });
+        }
+
+        function liveSearchRiwayat() {
+            const keyword = document.getElementById('search-riwayat-input').value.toLowerCase().trim();
+            const rows = document.querySelectorAll('.riwayat-item');
+            const emptyMessage = document.getElementById('no-riwayat-search-result');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const judul = row.getAttribute('data-judul') || '';
+                const status = row.getAttribute('data-status') || '';
+
+                if (judul.includes(keyword) || status.includes(keyword)) {
+                    row.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden');
+                }
+            });
+
+            if (emptyMessage) {
+                if (visibleCount === 0 && rows.length > 0) {
+                    emptyMessage.classList.remove('hidden');
+                } else {
+                    emptyMessage.classList.add('hidden');
+                }
+            }
         }
     </script>
 </body>
