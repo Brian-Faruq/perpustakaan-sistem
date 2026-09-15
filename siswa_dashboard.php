@@ -201,7 +201,7 @@ if ($q_leaderboard) {
 
         <!-- Logout Button -->
         <div class="p-4 border-t border-slate-800 shrink-0">
-            <a href="index.php" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl font-bold text-xs transition border border-rose-500/20">
+            <a href="javascript:void(0);" onclick="konfirmasiLogout()" class="flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 rounded-xl font-bold text-xs transition border border-rose-500/20">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
                 <span>Keluar / Logout</span>
             </a>
@@ -248,7 +248,6 @@ if ($q_leaderboard) {
 
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <?php
-                // Kueri diperbarui untuk menghitung rating & ulasan dinamis dari tabel review_buku
                 $sql_buku = "SELECT b.*, 
                                     COALESCE(AVG(r.rating), 0) AS rating_rata, 
                                     COUNT(r.id) AS total_review 
@@ -605,6 +604,24 @@ if ($q_leaderboard) {
             document.getElementById('sinopsis-judul').innerText = judul;
             document.getElementById('sinopsis-isi').innerText = sinopsis;
             toggleModal('modal-sinopsis');
+        }
+
+        // Konfirmasi Logout dengan SweetAlert2
+        function konfirmasiLogout() {
+            Swal.fire({
+                title: 'Konfirmasi Keluar',
+                text: 'yakin ingin keluar',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e11d48',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Keluar',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'index.php';
+                }
+            });
         }
     </script>
 </body>
