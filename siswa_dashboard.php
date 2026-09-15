@@ -71,13 +71,7 @@ $unread_count = $d_unread['unread'] ?? 0;
 // Ambil Daftar Notifikasi
 $q_notif = mysqli_query($koneksi, "SELECT * FROM notifikasi WHERE siswa_id = '$siswa_id_escaped' ORDER BY id DESC");
 
-// Sanitasi Pencarian Buku
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$search_escaped = mysqli_real_escape_string($koneksi, $search);
-
-// =========================================================================
-// QUERY UTAMA AMBIL KATALOG BUKU + RATING DINAMIS & TOTAL REVIEW (DITAMBAHKAN)
-// =========================================================================
+// Query mengambil seluruh katalog buku
 $query_katalog_buku = "
     SELECT 
         b.*, 
@@ -85,20 +79,13 @@ $query_katalog_buku = "
         COUNT(r.id) AS total_review 
     FROM buku b 
     LEFT JOIN review_buku r ON b.id = r.buku_id 
+    GROUP BY b.id 
+    ORDER BY b.id DESC
 ";
-
-if (!empty($search_escaped)) {
-    $query_katalog_buku .= " WHERE b.judul LIKE '%$search_escaped%' OR b.penulis LIKE '%$search_escaped%'";
-}
-
-$query_katalog_buku .= " GROUP BY b.id ORDER BY b.id DESC";
 $q_buku = mysqli_query($koneksi, $query_katalog_buku);
-// =========================================================================
 
 // Hitung Total Buku
-$q_total_buku = mysqli_query($koneksi, "SELECT COUNT(*) AS total FROM buku");
-$d_total_buku = mysqli_fetch_assoc($q_total_buku);
-$total_buku = $d_total_buku['total'] ?? 0;
+$total_buku = mysqli_num_rows($q_buku);
 
 // Query mengambil buku yang SUDAH dikembalikan tapi BELUM di-review oleh siswa ini
 $q_buku_review = mysqli_query($koneksi, "
@@ -235,74 +222,62 @@ if ($q_leaderboard) {
         <!-- TAB 1: KATALOG BUKU                     -->
         <!-- --------------------------------------- -->
         <section id="tab-katalog" class="space-y-6">
-            <!-- Search & Filter Bar -->
+            <!-- Search Live Filter Bar -->
             <div class="flex flex-col sm:flex-row gap-3 items-center justify-between bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm">
-                <form action="" method="GET" class="w-full sm:w-96 flex gap-2">
-                    <input type="text" name="search" value="<?= htmlspecialchars($search); ?>" placeholder="Cari judul atau penulis buku..." class="w-full px-4 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
-                    <button type="submit" class="bg-brand-orange hover:bg-orange-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition">Cari</button>
-                </form>
+                <div class="w-full sm:w-96 relative">
+                    <input type="text" id="live-search-input" onkeyup="liveSearch()" placeholder="Ketik judul atau penulis buku..." class="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-teal bg-slate-50">
+                    <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                </div>
                 <div class="text-xs text-slate-500 font-medium self-end sm:self-center">
-                    Total Buku: <span class="font-bold text-slate-800"><?= $total_buku; ?></span>
+                    Total Buku: <span id="total-buku-count" class="font-bold text-slate-800"><?= $total_buku; ?></span>
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                <?php
-                $sql_buku = "SELECT b.*, 
-                                    COALESCE(AVG(r.rating), 0) AS rating_rata, 
-                                    COUNT(r.id) AS total_review 
-                            FROM buku b 
-                            LEFT JOIN review_buku r ON b.id = r.buku_id";
-
-                if (!empty($search_escaped)) {
-                    $sql_buku .= " WHERE b.judul LIKE '%$search_escaped%' OR b.penulis LIKE '%$search_escaped%'";
-                }
-
-                $sql_buku .= " GROUP BY b.id ORDER BY b.id DESC";
-
-                $q_buku = mysqli_query($koneksi, $sql_buku);
-
-                if (mysqli_num_rows($q_buku) > 0):
-                    while ($b = mysqli_fetch_assoc($q_buku)):
-                ?>
-                    <div class="bg-white rounded-2xl border border-slate-200/80 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition">
-                        <div>
-                            <div class="w-full h-44 rounded-xl bg-slate-100 overflow-hidden mb-3 relative">
-                                <img src="uploads/<?= !empty($b['cover']) ? htmlspecialchars($b['cover']) : 'default_cover.jpg'; ?>" alt="<?= htmlspecialchars($b['judul']); ?>" class="w-full h-full object-cover">
-                                <span class="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold <?= $b['status'] === 'tersedia' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'; ?>">
-                                    <?= ucfirst($b['status']); ?>
+            <div id="katalog-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <?php if (mysqli_num_rows($q_buku) > 0): ?>
+                    <?php while ($b = mysqli_fetch_assoc($q_buku)): ?>
+                        <div class="buku-item bg-white rounded-2xl border border-slate-200/80 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition" 
+                             data-judul="<?= htmlspecialchars(strtolower($b['judul'])); ?>" 
+                             data-penulis="<?= htmlspecialchars(strtolower($b['penulis'])); ?>">
+                            <div>
+                                <div class="w-full h-44 rounded-xl bg-slate-100 overflow-hidden mb-3 relative">
+                                    <img src="uploads/<?= !empty($b['cover']) ? htmlspecialchars($b['cover']) : 'default_cover.jpg'; ?>" alt="<?= htmlspecialchars($b['judul']); ?>" class="w-full h-full object-cover">
+                                    <span class="absolute top-2 right-2 px-2 py-0.5 rounded-md text-[10px] font-bold <?= $b['status'] === 'tersedia' ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'; ?>">
+                                        <?= ucfirst($b['status']); ?>
+                                    </span>
+                                </div>
+                                <h3 class="font-bold text-slate-800 text-xs sm:text-sm line-clamp-2 leading-snug"><?= htmlspecialchars($b['judul']); ?></h3>
+                                <p class="text-[11px] text-slate-400 font-medium mt-1 truncate">✍️ <?= htmlspecialchars($b['penulis']); ?></p>
+                            </div>
+                            
+                            <!-- Rating & Review Dinamis -->
+                            <div class="flex items-center gap-1.5 my-2">
+                                <div class="flex text-amber-400">
+                                    <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
+                                        <path d="M10 15.27L16.18 19l-1.64-7.03L20 7.24l-7.19-.61L10 0 7.19 6.63 0 7.24l5.46 5.00L3.82 19z"/>
+                                    </svg>
+                                </div>
+                                <span class="text-xs font-semibold text-slate-700">
+                                    <?= $b['rating_rata'] > 0 ? number_format($b['rating_rata'], 1) : '0'; ?>
+                                </span>
+                                <span class="text-[10px] text-slate-400">
+                                    (<?= $b['total_review']; ?> ulasan)
                                 </span>
                             </div>
-                            <h3 class="font-bold text-slate-800 text-xs sm:text-sm line-clamp-2 leading-snug"><?= htmlspecialchars($b['judul']); ?></h3>
-                            <p class="text-[11px] text-slate-400 font-medium mt-1 truncate">✍️ <?= htmlspecialchars($b['penulis']); ?></p>
+
+                            <button onclick="openSinopsisModal('<?= htmlspecialchars(addslashes($b['judul'])); ?>', '<?= htmlspecialchars(addslashes($b['sinopsis'])); ?>')" class="mt-3 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1.5 rounded-xl text-[11px] transition">
+                                📖 Baca Sinopsis
+                            </button>
                         </div>
-                        <!-- Rating & Review Dinamis -->
-                        <div class="flex items-center gap-1.5 my-2">
-                            <div class="flex text-amber-400">
-                                <svg class="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                                    <path d="M10 15.27L16.18 19l-1.64-7.03L20 7.24l-7.19-.61L10 0 7.19 6.63 0 7.24l5.46 5.00L3.82 19z"/>
-                                </svg>
-                            </div>
-                            
-                            <!-- Nilai Rata-rata Rating -->
-                            <span class="text-xs font-semibold text-slate-700">
-                                <?= $b['rating_rata'] > 0 ? number_format($b['rating_rata'], 1) : '0'; ?>
-                            </span>
-                            
-                            <!-- Total Ulasan -->
-                            <span class="text-[10px] text-slate-400">
-                                (<?= $b['total_review']; ?> ulasan)
-                            </span>
-                        </div>
-                        <button onclick="openSinopsisModal('<?= htmlspecialchars(addslashes($b['judul'])); ?>', '<?= htmlspecialchars(addslashes($b['sinopsis'])); ?>')" class="mt-3 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1.5 rounded-xl text-[11px] transition">
-                            📖 Baca Sinopsis
-                        </button>
-                    </div>
-                <?php endwhile; else: ?>
-                    <div class="col-span-full py-12 text-center text-slate-400 text-xs sm:text-sm">
-                        Buku tidak ditemukan.
-                    </div>
+                    <?php endwhile; ?>
                 <?php endif; ?>
+
+                <!-- Tampilan jika hasil pencarian kosong -->
+                <div id="no-search-result" class="hidden col-span-full py-12 text-center text-slate-400 text-xs sm:text-sm">
+                    Buku tidak ditemukan.
+                </div>
             </div>
         </section>
 
@@ -570,6 +545,33 @@ if ($q_leaderboard) {
     </div>
 
     <script>
+        function liveSearch() {
+            const keyword = document.getElementById('live-search-input').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.buku-item');
+            const emptyMessage = document.getElementById('no-search-result');
+            let visibleCount = 0;
+
+            items.forEach(item => {
+                const judul = item.getAttribute('data-judul');
+                const penulis = item.getAttribute('data-penulis');
+
+                if (judul.includes(keyword) || penulis.includes(keyword)) {
+                    item.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+
+            document.getElementById('total-buku-count').innerText = visibleCount;
+
+            if (visibleCount === 0) {
+                emptyMessage.classList.remove('hidden');
+            } else {
+                emptyMessage.classList.add('hidden');
+            }
+        }
+
         function switchTab(tabName) {
             const tabs = ['katalog', 'riwayat', 'leaderboard', 'review'];
             tabs.forEach(t => {
@@ -606,7 +608,6 @@ if ($q_leaderboard) {
             toggleModal('modal-sinopsis');
         }
 
-        // Konfirmasi Logout dengan SweetAlert2
         function konfirmasiLogout() {
             Swal.fire({
                 title: 'Konfirmasi Keluar',
