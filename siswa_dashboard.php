@@ -475,10 +475,25 @@ if ($q_leaderboard) {
                             <?php if (count($leaderboard_data) > 0): 
                                 $rank = 1;
                                 foreach ($leaderboard_data as $ld):
+                                    // Cek apakah ID baris ini sama dengan ID siswa yang sedang login
+                                    $is_me = ($ld['id'] == $siswa_id);
                             ?>
-                                <tr class="leaderboard-item" data-nama="<?= htmlspecialchars(strtolower($ld['nama'])); ?>" data-kelas="<?= htmlspecialchars(strtolower($ld['kelas'])); ?>">
+                                <tr class="leaderboard-item <?= $is_me ? 'bg-amber-50/80 font-bold' : ''; ?>" 
+                                    data-nama="<?= htmlspecialchars(strtolower($ld['nama'])); ?>" 
+                                    data-kelas="<?= htmlspecialchars(strtolower($ld['kelas'])); ?>">
+                                    
                                     <td class="p-3 text-center font-bold">#<?= $rank; ?></td>
-                                    <td class="p-3 font-semibold text-slate-800"><?= htmlspecialchars($ld['nama']); ?></td>
+                                    
+                                    <!-- Kolom Nama Siswa + Keterangan (Saya) -->
+                                    <td class="p-3 font-semibold text-slate-800 flex items-center gap-2">
+                                        <span><?= htmlspecialchars($ld['nama']); ?></span>
+                                        <?php if ($is_me): ?>
+                                            <span class="bg-brand-orange text-white text-[10px] font-extrabold px-2 py-0.5 rounded-full shadow-sm">
+                                                Saya
+                                            </span>
+                                        <?php endif; ?>
+                                    </td>
+
                                     <td class="p-3 text-slate-500"><?= htmlspecialchars($ld['kelas']); ?></td>
                                     <td class="p-3 text-center text-xs text-slate-500">
                                         <span class="font-medium text-slate-700"><?= $ld['total_pinjam']; ?> buku</span> • 
@@ -498,7 +513,6 @@ if ($q_leaderboard) {
                                 </tr>
                             <?php endif; ?>
 
-                            <!-- Row Tampilan Jika Pencarian Tidak Ditemukan -->
                             <tr id="no-leaderboard-search-result" class="hidden">
                                 <td colspan="5" class="p-6 text-center text-slate-400 text-xs">Siswa tidak ditemukan.</td>
                             </tr>
