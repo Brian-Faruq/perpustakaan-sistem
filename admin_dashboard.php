@@ -1106,7 +1106,15 @@ if (isset($_POST['kirim_peringatan'])) {
             <div class="bg-white rounded-3xl shadow-xl p-6 border border-slate-100">
                 <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
                     <h3 class="font-bold text-base text-brand-navy">Daftar Seluruh Peringkat Siswa</h3>
-                    <input type="text" id="searchLeaderboard" onkeyup="filterLeaderboard()" placeholder="Cari nama siswa..." class="p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal w-48 sm:w-64">
+                    
+                    <div class="flex items-center gap-2">
+                        <!-- TOMBOL DOWNLOAD EXCEL -->
+                        <a href="export_leaderboard.php" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-2 rounded-xl font-bold transition flex items-center gap-1.5 shadow-sm">
+                            📥 Export Excel
+                        </a>
+                        
+                        <input type="text" id="searchLeaderboard" onkeyup="filterLeaderboard()" placeholder="Cari nama siswa..." class="p-2 border border-slate-200 rounded-xl text-xs sm:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-brand-teal w-48 sm:w-64">
+                    </div>
                 </div>
 
                 <div class="overflow-x-auto">
