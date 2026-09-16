@@ -322,15 +322,27 @@ if (isset($_POST['pinjam_buku'])) {
 // Aksi 8: Pengembalian Buku
 if (isset($_POST['kembalikan_buku'])) {
     $id_pinjam = intval($_POST['id_peminjaman']);
-    $q_get = mysqli_query($koneksi, "SELECT buku_id FROM peminjaman WHERE id = $id_pinjam");
+    
+    // Ambil data buku_id dan siswa_id sebelum transaksi diubah
+    $q_get = mysqli_query($koneksi, "SELECT siswa_id, buku_id FROM peminjaman WHERE id = $id_pinjam");
     if ($data = mysqli_fetch_assoc($q_get)) {
-        $buku_id = $data['buku_id'];
+        $siswa_id = $data['siswa_id'];
+        $buku_id  = $data['buku_id'];
         $tgl_sekarang = date('Y-m-d');
 
+        // Update status peminjaman & buku
         mysqli_query($koneksi, "UPDATE peminjaman SET status_transaksi = 'selesai', tanggal_kembali = '$tgl_sekarang' WHERE id = $id_pinjam");
         mysqli_query($koneksi, "UPDATE buku SET status = 'tersedia' WHERE id = $buku_id");
 
-        $msg = "Buku berhasil dikembalikan!";
+        // OTOMATIS HILANGKAN NOTIFIKASI SAAT BUKU DIKEMBALIKAN
+        // Menghapus notifikasi milik siswa terkait yang berisi judul buku tersebut
+        $q_buku = mysqli_query($koneksi, "SELECT judul FROM buku WHERE id = '$buku_id'");
+        if ($d_buku = mysqli_fetch_assoc($q_buku)) {
+            $judul_buku = mysqli_real_escape_string($koneksi, $d_buku['judul']);
+            mysqli_query($koneksi, "DELETE FROM notifikasi WHERE siswa_id = '$siswa_id' AND pesan LIKE '%$judul_buku%'");
+        }
+
+        $msg = "Buku berhasil dikembalikan dan notifikasi terkait telah dibersihkan!";
     }
 }
 

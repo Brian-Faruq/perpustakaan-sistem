@@ -42,6 +42,26 @@ if (isset($_POST['simpan_review'])) {
     }
 }
 
+// Proses Hapus Notifikasi Secara Permanen dari Database
+if (isset($_POST['hapus_notif'])) {
+    $id_notif = intval($_POST['id_notifikasi']);
+    
+    // Ambil ID siswa dari session
+    $siswa_id = $_SESSION['id'] ?? $_SESSION['siswa_id'] ?? 0;
+    
+    // Hapus baris notifikasi
+    mysqli_query($koneksi, "DELETE FROM notifikasi WHERE id = '$id_notif' AND siswa_id = '$siswa_id'");
+    
+    // Redirect refresh agar data badge angka 1 langsung hilang
+    header("Location: siswa_dashboard.php");
+    exit;
+}
+
+// Ambil data notifikasi siswa
+$siswa_id = $_SESSION['id'] ?? $_SESSION['siswa_id'] ?? 0;
+$q_notif  = mysqli_query($koneksi, "SELECT * FROM notifikasi WHERE siswa_id = '$siswa_id' ORDER BY id DESC");
+$total_notif = mysqli_num_rows($q_notif);
+
 // Query Leaderboard (Total Pinjam * 10 + Total Review * 20)
 $q_leaderboard = mysqli_query($koneksi, "
     SELECT 
@@ -241,13 +261,12 @@ if ($q_leaderboard) {
 
             <!-- NOTIFIKASI POP-UP BUTTON -->
             <div class="relative">
-                <button onclick="toggleModal('modal-notif')" class="relative p-2.5 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition shadow-sm">
-                    <span class="text-lg">🔔</span>
-                    <?php if ($unread_count > 0): ?>
-                        <span class="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
-                            <?= $unread_count; ?>
-                        </span>
-                    <?php endif; ?>
+                <!-- Button Lonceng Notifikasi -->
+                <button id="btnNotif" onclick="toggleModal('modal-notif')" class="relative p-2 rounded-full hover:bg-slate-100 transition">
+                    🔔
+                    <span id="badge-notif" class="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-white <?= $unread_count > 0 ? '' : 'hidden'; ?>">
+                        <?= $unread_count; ?>
+                    </span>
                 </button>
             </div>
         </header>
@@ -584,15 +603,33 @@ if ($q_leaderboard) {
                 <p class="text-xs text-slate-400">Pesan dari petugas perpustakaan</p>
             </div>
 
-            <div class="space-y-2 max-h-60 overflow-y-auto">
-                <?php if (mysqli_num_rows($q_notif) > 0): while ($n = mysqli_fetch_assoc($q_notif)): ?>
-                    <div class="p-3 bg-amber-50 border border-amber-200/60 rounded-xl text-xs text-amber-900">
-                        <p class="font-bold mb-0.5">⚠️ Perhatian!</p>
-                        <p><?= htmlspecialchars($n['pesan']); ?></p>
-                        <span class="text-[9px] text-amber-700/70 mt-1 block"><?= date('d-m-Y H:i', strtotime($n['created_at'])); ?></span>
+            <!-- Container List Notifikasi -->
+            <div id="notif-container" class="space-y-2 max-h-80 overflow-y-auto p-2">
+                <?php if (mysqli_num_rows($q_notif) > 0): ?>
+                    <?php while ($notif = mysqli_fetch_assoc($q_notif)): ?>
+                        <div id="notif-item-<?= $notif['id']; ?>" class="notif-card flex items-start justify-between bg-amber-50 border border-amber-200 p-3 rounded-2xl shadow-sm gap-2 transition-all duration-300">
+                            <div class="flex items-start gap-2">
+                                <span class="text-amber-500 text-base">⚠️</span>
+                                <div>
+                                    <p class="text-xs font-semibold text-slate-800 leading-tight">
+                                        <?= htmlspecialchars($notif['pesan']); ?>
+                                    </p>
+                                    <span class="text-[10px] text-slate-400 mt-1 block">
+                                        <?= date('d M Y H:i', strtotime($notif['created_at'] ?? $notif['tanggal'])); ?>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Tombol Hapus AJAX (Tanpa Reload & Tanpa Keluar Modal) -->
+                            <button type="button" onclick="hapusNotifAjax(<?= $notif['id']; ?>)" title="Hapus Notifikasi" class="shrink-0 w-6 h-6 rounded-full bg-slate-200/60 hover:bg-rose-500 hover:text-white text-slate-500 text-xs font-bold flex items-center justify-center transition">
+                                ✕
+                            </button>
+                        </div>
+                    <?php endwhile; ?>
+                <?php else: ?>
+                    <div id="notif-empty" class="text-center py-6 text-slate-400 text-xs">
+                        🎉 Tidak ada notifikasi atau peringatan saat ini.
                     </div>
-                <?php endwhile; else: ?>
-                    <p class="text-center text-slate-400 text-xs py-4">Tidak ada notifikasi baru.</p>
                 <?php endif; ?>
             </div>
 
@@ -768,6 +805,44 @@ if ($q_leaderboard) {
                 width: '100%'
             });
         });
+
+        function hapusNotifAjax(idNotif) {
+            $.ajax({
+                url: 'hapus_notif_ajax.php',
+                type: 'POST',
+                data: { id_notifikasi: idNotif },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // 1. Hilangkan elemen notifikasi secara visual
+                        const item = $('#notif-item-' + idNotif);
+                        item.fadeOut(300, function() {
+                            $(this).remove();
+
+                            // Cek jika tidak ada notifikasi tersisa di dalam modal
+                            if ($('#notif-container .notif-card').length === 0) {
+                                $('#notif-container').html(`
+                                    <div id="notif-empty" class="text-center py-6 text-slate-400 text-xs">
+                                        🎉 Tidak ada notifikasi atau peringatan saat ini.
+                                    </div>
+                                `);
+                            }
+                        });
+
+                        // 2. Update badge angka di ikon lonceng
+                        const badge = $('#badge-notif');
+                        let count = parseInt(badge.text()) || 0;
+                        count = Math.max(0, count - 1);
+
+                        if (count > 0) {
+                            badge.text(count);
+                        } else {
+                            badge.addClass('hidden');
+                        }
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
