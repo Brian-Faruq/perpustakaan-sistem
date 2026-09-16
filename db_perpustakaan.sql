@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 31 Agu 2026 pada 09.25
+-- Waktu pembuatan: 16 Sep 2026 pada 08.50
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.1.25
 
@@ -61,19 +61,11 @@ CREATE TABLE `buku` (
 --
 
 INSERT INTO `buku` (`id`, `judul`, `penulis`, `sinopsis`, `cover`, `status`) VALUES
-(3, 'Pulang', 'Tere Liye', 'gitu', 'default_cover.jpg', 'tersedia'),
-(4, 'Pergi', 'Tere Liye', 'ya gitu deh', '1787131051_6a8574aba567e.png', 'tersedia'),
-(5, 'Si Anak Badai', 'Tere Liye', 'ada anak badai', '1787131315_6a8575b3bb137.png', 'tersedia'),
-(9, 'Matahari', 'Tere Liye', 'yang gitu', 'default_cover.jpg', 'tersedia'),
-(11, 'Seporsi Mie Ayam Sebelum Mati', 'Brian Khrisna', 'mati', 'default_cover.jpg', 'tersedia'),
-(15, 'Teruslah Bodoh Jangan Pintar', 'Tere Liye', 'bodoh', 'default_cover.jpg', 'tersedia'),
-(16, 'Hujan', 'Tere Liye', 'haha', 'default_cover.jpg', 'tersedia'),
-(17, 'Bandung Menjelang Pagi', 'Brian Khrisna', 'apa aajlah', 'default_cover.jpg', 'dipinjam'),
-(18, 'Bumi', 'Tere Liye', 'itu', 'default_cover.jpg', 'tersedia'),
-(19, 'Bulan', 'Tere Liye', 'heeh', 'default_cover.jpg', 'tersedia'),
-(20, 'Selena', 'Tere Liye', 'gitu dah mager gw', 'default_cover.jpg', 'tersedia'),
-(21, 'Dompet Ayah Sepatu Ibu', 'JS.Khairen', 'ya gitu lah king, ada zenna, sama asrul ya ing , asik lah bukunhya', 'default_cover.jpg', 'tersedia'),
-(22, 'Ily', 'Tere Liye', 'gendut', '1788160391_6a9529870c5a3.JPG', 'tersedia');
+(35, 'Laskar Belitung', 'Andrea Hirata', 'Kisah perjuangan anak sekolah di Belitung', 'laskar.jpg', 'tersedia'),
+(36, 'Bumi Pertiwi', 'Tere Liye', 'Petualangan di dunia paralel', 'bumi.jpg', 'tersedia'),
+(37, 'Negeri 5 Menara', 'Ahmad Fuadi', 'Kisah kehidupan santri', 'menara.jpg', 'dipinjam'),
+(41, 'Pulang', 'Tere Liye', 'itulah intinya', 'pulang.jpg', 'tersedia'),
+(42, 'Pergi', 'Tere Liye', 'pp', 'pergi.jpg', 'tersedia');
 
 -- --------------------------------------------------------
 
@@ -96,7 +88,7 @@ CREATE TABLE `notifikasi` (
 INSERT INTO `notifikasi` (`id`, `siswa_id`, `pesan`, `is_read`, `created_at`) VALUES
 (1, 8, 'Waktu peminjaman buku \"Hujan\" habis, kembalikan sekarang!', 0, '2026-08-24 07:40:06'),
 (2, 8, 'Waktu peminjaman buku \"Hujan\" habis, kembalikan sekarang!', 0, '2026-08-24 07:42:53'),
-(3, 11, 'Waktu peminjaman buku \"Bandung Menjelang Pagi\" habis, kembalikan sekarang!', 0, '2026-08-25 03:41:55');
+(6, 11, 'Waktu peminjaman buku \"Negeri 5 Menara\" habis, kembalikan sekarang!', 0, '2026-09-16 03:53:21');
 
 -- --------------------------------------------------------
 
@@ -120,19 +112,37 @@ CREATE TABLE `peminjaman` (
 --
 
 INSERT INTO `peminjaman` (`id`, `siswa_id`, `buku_id`, `tanggal_pinjam`, `durasi_hari`, `tanggal_jatuh_tempo`, `tanggal_kembali`, `status_transaksi`) VALUES
-(25, 7, 9, '2026-08-23', 3, NULL, '2026-08-23', 'selesai'),
-(27, 9, 16, '2026-08-23', 3, NULL, '2026-08-23', 'selesai'),
-(29, 7, 4, '2026-08-23', 3, NULL, '2026-08-23', 'selesai'),
-(30, 9, 16, '2026-08-23', 3, NULL, '2026-08-23', 'selesai'),
-(31, 10, 18, '2026-08-24', 3, NULL, '2026-08-25', 'selesai'),
-(32, 6, 17, '2026-08-24', 3, NULL, '2026-08-25', 'selesai'),
-(33, 9, 11, '2026-08-24', 3, NULL, '2026-08-25', 'selesai'),
-(34, 7, 19, '2026-08-24', 3, NULL, '2026-08-25', 'selesai'),
-(36, 11, 17, '2026-08-25', 3, NULL, '2026-08-25', 'selesai'),
-(38, 7, 19, '2026-08-25', 3, NULL, '2026-08-25', 'selesai'),
-(41, 9, 18, '2026-08-25', 7, '2026-09-01', '2026-08-26', 'selesai'),
-(42, 15, 19, '2026-08-26', 2, '2026-08-28', '2026-08-26', 'selesai'),
-(43, 15, 17, '2026-08-31', 3, '2026-09-03', NULL, 'berjalan');
+(46, 9, 37, '2026-09-10', 5, '2026-09-15', '2026-09-13', 'selesai'),
+(47, 15, 42, '2026-09-10', 3, '2026-09-13', '2026-09-13', 'selesai'),
+(48, 15, 37, '2026-09-14', 6, '2026-09-20', '2026-09-14', 'selesai'),
+(49, 7, 35, '2026-09-14', 2, '2026-09-16', '2026-09-15', 'selesai'),
+(50, 6, 42, '2026-09-14', 2, '2026-09-16', '2026-09-15', 'selesai'),
+(51, 9, 41, '2026-09-14', 7, '2026-09-21', '2026-09-15', 'selesai'),
+(52, 11, 37, '2026-09-16', 1, '2026-09-17', NULL, 'berjalan');
+
+-- --------------------------------------------------------
+
+--
+-- Struktur dari tabel `review_buku`
+--
+
+CREATE TABLE `review_buku` (
+  `id` int(11) NOT NULL,
+  `siswa_id` int(11) NOT NULL,
+  `buku_id` int(11) NOT NULL,
+  `rating` int(1) NOT NULL DEFAULT 5,
+  `ulasan` text DEFAULT NULL,
+  `created_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data untuk tabel `review_buku`
+--
+
+INSERT INTO `review_buku` (`id`, `siswa_id`, `buku_id`, `rating`, `ulasan`, `created_at`) VALUES
+(1, 15, 42, 5, 'hemmmh, kelas sih bukunya asik jugak', '2026-09-13 13:58:17'),
+(2, 9, 37, 5, 'asikkkk, kelas banget bukunya king, kayak gitulah intinya king, ngetikan lu king apa yang gw maksud?, yah jadi gitulah, ada orang masuk pesantren terus jadi gila, habis itu mati, terus ibunya nangis, terus ikut mati jugak,, ya begitulah', '2026-09-13 14:00:10'),
+(3, 15, 37, 3, 'keren king, kelas king, keren king kelas king, keren king, kelas king, keren king kelas king', '2026-09-14 14:03:12');
 
 -- --------------------------------------------------------
 
@@ -195,6 +205,14 @@ ALTER TABLE `peminjaman`
   ADD KEY `buku_id` (`buku_id`);
 
 --
+-- Indeks untuk tabel `review_buku`
+--
+ALTER TABLE `review_buku`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `siswa_id` (`siswa_id`),
+  ADD KEY `buku_id` (`buku_id`);
+
+--
 -- Indeks untuk tabel `siswa`
 --
 ALTER TABLE `siswa`
@@ -215,25 +233,31 @@ ALTER TABLE `admin`
 -- AUTO_INCREMENT untuk tabel `buku`
 --
 ALTER TABLE `buku`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=23;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
 
 --
 -- AUTO_INCREMENT untuk tabel `notifikasi`
 --
 ALTER TABLE `notifikasi`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT untuk tabel `peminjaman`
 --
 ALTER TABLE `peminjaman`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+
+--
+-- AUTO_INCREMENT untuk tabel `review_buku`
+--
+ALTER TABLE `review_buku`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT untuk tabel `siswa`
 --
 ALTER TABLE `siswa`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
 
 --
 -- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
@@ -245,6 +269,13 @@ ALTER TABLE `siswa`
 ALTER TABLE `peminjaman`
   ADD CONSTRAINT `peminjaman_ibfk_1` FOREIGN KEY (`siswa_id`) REFERENCES `siswa` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `peminjaman_ibfk_2` FOREIGN KEY (`buku_id`) REFERENCES `buku` (`id`) ON DELETE CASCADE;
+
+--
+-- Ketidakleluasaan untuk tabel `review_buku`
+--
+ALTER TABLE `review_buku`
+  ADD CONSTRAINT `fk_review_buku` FOREIGN KEY (`buku_id`) REFERENCES `buku` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_review_siswa` FOREIGN KEY (`siswa_id`) REFERENCES `siswa` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

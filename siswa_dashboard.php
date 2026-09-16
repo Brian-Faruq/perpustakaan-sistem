@@ -21,7 +21,6 @@ if (isset($_POST['simpan_review'])) {
     ");
 
     if (mysqli_num_rows($q_cek_pinjam) > 0) {
-        // Cek apakah sudah pernah diulas
         $q_cek_review = mysqli_query($koneksi, "
             SELECT id FROM review_buku 
             WHERE siswa_id = '$siswa_id_input' AND buku_id = '$buku_id_input'
@@ -45,24 +44,40 @@ if (isset($_POST['simpan_review'])) {
 // Proses Hapus Notifikasi Secara Permanen dari Database
 if (isset($_POST['hapus_notif'])) {
     $id_notif = intval($_POST['id_notifikasi']);
-    
-    // Ambil ID siswa dari session
     $siswa_id = $_SESSION['id'] ?? $_SESSION['siswa_id'] ?? 0;
     
-    // Hapus baris notifikasi
     mysqli_query($koneksi, "DELETE FROM notifikasi WHERE id = '$id_notif' AND siswa_id = '$siswa_id'");
     
-    // Redirect refresh agar data badge angka 1 langsung hilang
     header("Location: siswa_dashboard.php");
     exit;
 }
 
-// Ambil data notifikasi siswa
-$siswa_id = $_SESSION['id'] ?? $_SESSION['siswa_id'] ?? 0;
-$q_notif  = mysqli_query($koneksi, "SELECT * FROM notifikasi WHERE siswa_id = '$siswa_id' ORDER BY id DESC");
+// Inisialisasi Data Siswa dari Session
+$siswa_id = $_SESSION['id'] ?? $_SESSION['siswa_id'] ?? $_SESSION['user_id'] ?? 0;
+$nama_user = $_SESSION['nama'] ?? 'Siswa';
+$siswa_id_escaped = mysqli_real_escape_string($koneksi, $siswa_id);
+
+// 1. QUERY NOTIFIKASI LENGKAP (Cukup 1 Query Ini Saja)
+$q_notif = mysqli_query($koneksi, "
+    SELECT 
+        n.id AS id_notif,
+        n.pesan,
+        n.is_read,
+        n.created_at,
+        p.tanggal_jatuh_tempo
+    FROM notifikasi n
+    LEFT JOIN peminjaman p ON n.siswa_id = p.siswa_id AND p.status_transaksi = 'berjalan'
+    WHERE n.siswa_id = '$siswa_id_escaped' 
+    ORDER BY n.id DESC
+");
 $total_notif = mysqli_num_rows($q_notif);
 
-// Query Leaderboard (Total Pinjam * 10 + Total Review * 20)
+// 2. Hitung Notifikasi Belum Dibaca
+$q_unread = mysqli_query($koneksi, "SELECT COUNT(*) as unread FROM notifikasi WHERE siswa_id = '$siswa_id_escaped' AND is_read = 0");
+$d_unread = mysqli_fetch_assoc($q_unread);
+$unread_count = $d_unread['unread'] ?? 0;
+
+// 3. Query Leaderboard
 $q_leaderboard = mysqli_query($koneksi, "
     SELECT 
         s.id,
@@ -79,19 +94,7 @@ $q_leaderboard = mysqli_query($koneksi, "
     LIMIT 10
 ");
 
-$siswa_id = $_SESSION['id'] ?? $_SESSION['siswa_id'] ?? $_SESSION['user_id'] ?? 0;
-$nama_user = $_SESSION['nama'] ?? 'Siswa';
-$siswa_id_escaped = mysqli_real_escape_string($koneksi, $siswa_id);
-
-// Hitung Notifikasi Belum Dibaca
-$q_unread = mysqli_query($koneksi, "SELECT COUNT(*) as unread FROM notifikasi WHERE siswa_id = '$siswa_id_escaped' AND is_read = 0");
-$d_unread = mysqli_fetch_assoc($q_unread);
-$unread_count = $d_unread['unread'] ?? 0;
-
-// Ambil Daftar Notifikasi
-$q_notif = mysqli_query($koneksi, "SELECT * FROM notifikasi WHERE siswa_id = '$siswa_id_escaped' ORDER BY id DESC");
-
-// Query mengambil seluruh katalog buku
+// 4. Query Katalog Buku
 $query_katalog_buku = "
     SELECT 
         b.*, 
@@ -103,11 +106,9 @@ $query_katalog_buku = "
     ORDER BY b.id DESC
 ";
 $q_buku = mysqli_query($koneksi, $query_katalog_buku);
-
-// Hitung Total Buku
 $total_buku = mysqli_num_rows($q_buku);
 
-// Query mengambil buku yang SUDAH dikembalikan tapi BELUM di-review oleh siswa ini
+// 5. Query Buku Siap Review
 $q_buku_review = mysqli_query($koneksi, "
     SELECT DISTINCT b.id, b.judul, b.penulis, b.cover 
     FROM peminjaman p
@@ -119,7 +120,7 @@ $q_buku_review = mysqli_query($koneksi, "
       )
 ");
 
-// Inisialisasi array $leaderboard_data
+// Array Leaderboard
 $leaderboard_data = [];
 if ($q_leaderboard) {
     while ($row = mysqli_fetch_assoc($q_leaderboard)) {
@@ -607,21 +608,39 @@ if ($q_leaderboard) {
             <div id="notif-container" class="space-y-2 max-h-80 overflow-y-auto p-2">
                 <?php if (mysqli_num_rows($q_notif) > 0): ?>
                     <?php while ($notif = mysqli_fetch_assoc($q_notif)): ?>
-                        <div id="notif-item-<?= $notif['id']; ?>" class="notif-card flex items-start justify-between bg-amber-50 border border-amber-200 p-3 rounded-2xl shadow-sm gap-2 transition-all duration-300">
-                            <div class="flex items-start gap-2">
-                                <span class="text-amber-500 text-base">⚠️</span>
+                        <?php 
+                            $waktu_dikirim = $notif['created_at'] ?? date('Y-m-d H:i:s');
+                            $jatuh_tempo = $notif['tanggal_jatuh_tempo'] ?? $waktu_dikirim;
+                        ?>
+
+                        <div id="notif-item-<?= $notif['id_notif']; ?>" class="notif-card flex items-start justify-between bg-amber-50 border border-amber-200 p-3.5 rounded-2xl shadow-sm">
+                            <div class="flex items-start gap-2.5">
+                                <span class="text-amber-500 text-lg">⚠️</span>
                                 <div>
-                                    <p class="text-xs font-semibold text-slate-800 leading-tight">
+                                    <!-- Pesan Dinamis (Diksi berubah via JS) -->
+                                    <p class="notif-msg-text text-xs font-bold text-slate-800 leading-tight" data-original="<?= htmlspecialchars($notif['pesan']); ?>">
                                         <?= htmlspecialchars($notif['pesan']); ?>
                                     </p>
-                                    <span class="text-[10px] text-slate-400 mt-1 block">
-                                        <?= date('d M Y H:i', strtotime($notif['created_at'] ?? $notif['tanggal'])); ?>
-                                    </span>
+
+                                    <!-- Count Down Realtime -->
+                                    <?php if (!empty($notif['tanggal_jatuh_tempo'])): ?>
+                                        <div class="my-1.5">
+                                            <span class="countdown-notif text-[11px] font-bold" data-target="<?= $notif['tanggal_jatuh_tempo']; ?> 23:59:59">
+                                                Menghitung sisa waktu...
+                                            </span>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <!-- Waktu Dikirim & Jatuh Tempo -->
+                                    <div class="text-[10px] text-slate-500 space-y-0.5">
+                                        <p>Dikirim: <span class="font-medium text-slate-600"><?= date('d M Y H:i', strtotime($waktu_dikirim)); ?></span></p>
+                                        <p>Jatuh Tempo: <span class="font-medium text-amber-700"><?= date('d M Y H:i', strtotime($jatuh_tempo)); ?></span></p>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Tombol Hapus AJAX (Tanpa Reload & Tanpa Keluar Modal) -->
-                            <button type="button" onclick="hapusNotifAjax(<?= $notif['id']; ?>)" title="Hapus Notifikasi" class="shrink-0 w-6 h-6 rounded-full bg-slate-200/60 hover:bg-rose-500 hover:text-white text-slate-500 text-xs font-bold flex items-center justify-center transition">
+                            <!-- Tombol Hapus AJAX -->
+                            <button type="button" onclick="hapusNotifAjax(<?= $notif['id_notif']; ?>)" title="Hapus Notifikasi" class="shrink-0 w-6 h-6 rounded-full bg-slate-200/60 hover:bg-slate-300 flex items-center justify-center text-slate-500 text-xs">
                                 ✕
                             </button>
                         </div>
@@ -843,6 +862,52 @@ if ($q_leaderboard) {
                 }
             });
         }
+
+        function updateNotifCountdown() {
+            document.querySelectorAll('.countdown-notif').forEach(timer => {
+                const targetDateStr = timer.getAttribute('data-target');
+                if (!targetDateStr) return;
+
+                const card = timer.closest('.notif-card');
+                const msgElement = card ? card.querySelector('.notif-msg-text') : null;
+                const originalMsg = msgElement ? msgElement.getAttribute('data-original') : '';
+
+                // Ekstrak nama buku dari pesan bawaan database
+                const matchBuku = originalMsg.match(/buku\s+"([^"]+)"/i);
+                const namaBuku = matchBuku ? matchBuku[1] : 'buku';
+
+                const targetDate = new Date(targetDateStr).getTime();
+                const now = new Date().getTime();
+                const diff = targetDate - now;
+
+                if (diff <= 0) {
+                    // DIKSI SAAT JATUH TEMPO / KETERLAMBATAN
+                    timer.innerHTML = '<span class="text-red-600 bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg font-bold">⚠️ Waktu Habis</span>';
+                    
+                    if (msgElement) {
+                        msgElement.innerText = `Peminjaman Buku: Masa peminjaman buku "${namaBuku}" telah habis! Segera kembalikan ke perpustakaan.`;
+                        msgElement.classList.add('text-red-700'); // Mengubah warna teks pesan jadi merah
+                    }
+                } else {
+                    // DIKSI SAAT SEBELUM JATUH TEMPO
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+                    let timeString = days > 0 ? `${days} Hari lagi` : `${hours} Jam ${minutes} Menit lagi`;
+
+                    timer.innerHTML = `<span class="text-amber-700 bg-amber-100 border border-amber-200 px-2.5 py-1 rounded-lg font-bold">⏳ Waktu hampir habis (${timeString})</span>`;
+                    
+                    if (msgElement) {
+                        msgElement.innerText = `Peminjaman Buku: Masa peminjaman buku "${namaBuku}" hampir habis!`;
+                    }
+                }
+            });
+        }
+
+        // Jalankan interval setiap detik
+        setInterval(updateNotifCountdown, 1000);
+        updateNotifCountdown();
     </script>
 </body>
 </html>

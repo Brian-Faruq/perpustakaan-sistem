@@ -216,10 +216,25 @@ if ($q_s) $count_siswa = mysqli_fetch_assoc($q_s)['total'] ?? 0;
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Password</label>
                         <div class="relative">
-                            <input type="password" name="password" required placeholder="••••••••" class="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white focus:outline-none text-slate-800 placeholder-slate-400 transition text-xs font-medium">
+                            <input type="password" id="passwordInput" name="password" required placeholder="••••••••" class="w-full pl-9 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-brand-teal focus:border-brand-teal focus:bg-white focus:outline-none text-slate-800 placeholder-slate-400 transition text-xs font-medium">
+                            
+                            <!-- Ikon Gembok (Kiri) -->
                             <svg class="w-4 h-4 text-slate-400 absolute left-3 top-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
                             </svg>
+
+                            <!-- Tombol Toggle Mata (Kanan) -->
+                            <button type="button" onclick="togglePassword()" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 focus:outline-none p-0.5">
+                                <!-- Ikon Mata Terbuka -->
+                                <svg id="eyeIcon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                <!-- Ikon Mata Coret (Default Hidden) -->
+                                <svg id="eyeOffIcon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a8.97 8.97 0 013.682-.822c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m-1.54 1.54l-11-11" />
+                                </svg>
+                            </button>
                         </div>
                     </div>
 
@@ -243,6 +258,25 @@ if ($q_s) $count_siswa = mysqli_fetch_assoc($q_s)['total'] ?? 0;
         </div>
 
     </div>
+
+    <!-- Script Toggle Password -->
+    <script>
+    function togglePassword() {
+        const passwordInput = document.getElementById('passwordInput');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const eyeOffIcon = document.getElementById('eyeOffIcon');
+
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.classList.add('hidden');
+            eyeOffIcon.classList.remove('hidden');
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.classList.remove('hidden');
+            eyeOffIcon.classList.add('hidden');
+        }
+    }
+    </script>
 
     <!-- Script SweetAlert Absolute Center -->
     <script>
