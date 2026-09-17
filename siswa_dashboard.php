@@ -1,42 +1,88 @@
 <?php
 session_start();
 include 'koneksi.php';
+include 'helper_ai.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'siswa') {
     header("Location: index.php");
     exit;
 }
 
-// Aksi: Simpan Review / Ulasan Buku oleh Siswa
+// Aksi: Simpan Review / Ulasan Buku oleh Siswa (Dengan Validation AI)
 if (isset($_POST['simpan_review'])) {
     $siswa_id_input = intval($_POST['siswa_id']);
     $buku_id_input  = intval($_POST['buku_id']);
     $rating_input   = intval($_POST['rating']);
-    $ulasan_input   = mysqli_real_escape_string($koneksi, trim($_POST['ulasan']));
+    
+    // Teks murni tanpa escape string untuk dikirim ke AI
+    $ulasan_murni   = trim($_POST['ulasan']);
 
-    // Verifikasi agar siswa hanya mengulas buku miliknya yang sudah selesai dipinjam
-    $q_cek_pinjam = mysqli_query($koneksi, "
-        SELECT id FROM peminjaman 
-        WHERE siswa_id = '$siswa_id_input' AND buku_id = '$buku_id_input' AND status_transaksi = 'selesai'
-    ");
+    // Cek minimal kata di sisi PHP agar tidak membuang kuota API jika terlalu pendek
+    if (str_word_count($ulasan_murni) < 15) {
+        echo "<script>
+            document.addEventListener('DOMContentLoaded', function() {
+                Swal.fire('Ulasan Terlalu Singkat!', 'Tuliskan ulasan minimal 1 paragraf (minimal 15 kata) yang relevan dengan isi buku.', 'warning');
+            });
+        </script>";
+    } else {
+        // Ambil Judul Buku untuk dikirim ke AI
+        $q_buku = mysqli_query($koneksi, "SELECT judul FROM buku WHERE id = '$buku_id_input'");
+        $d_buku = mysqli_fetch_assoc($q_buku);
+        $judul_buku = $d_buku['judul'] ?? 'Buku Perpustakaan';
 
-    if (mysqli_num_rows($q_cek_pinjam) > 0) {
-        $q_cek_review = mysqli_query($koneksi, "
-            SELECT id FROM review_buku 
-            WHERE siswa_id = '$siswa_id_input' AND buku_id = '$buku_id_input'
-        ");
+        // PERBAIKAN: Mengirim $ulasan_murni ke fungsi AI
+        $hasil_ai = validasiUlasanAI($judul_buku, $ulasan_murni);
 
-        if (mysqli_num_rows($q_cek_review) == 0) {
-            $sql_ins_review = "INSERT INTO review_buku (siswa_id, buku_id, rating, ulasan) 
-                               VALUES ('$siswa_id_input', '$buku_id_input', '$rating_input', '$ulasan_input')";
-            if (mysqli_query($koneksi, $sql_ins_review)) {
+        if (isset($hasil_ai['status']) && $hasil_ai['status'] === 'VALID') {
+            // 1. Verifikasi status peminjaman
+            $q_cek_pinjam = mysqli_query($koneksi, "
+                SELECT id FROM peminjaman 
+                WHERE siswa_id = '$siswa_id_input' AND buku_id = '$buku_id_input' AND status_transaksi = 'selesai'
+            ");
+
+            if (mysqli_num_rows($q_cek_pinjam) === 0) {
                 echo "<script>
                     document.addEventListener('DOMContentLoaded', function() {
-                        Swal.fire('Berhasil!', 'Ulasan berhasil disimpan. Kamu mendapatkan +20 Poin!', 'success')
-                        .then(() => { window.location.href='siswa_dashboard.php'; });
+                        Swal.fire('Gagal!', 'Kamu hanya bisa mengulas buku yang peminjamannya sudah Selesai/Dikembalikan!', 'warning');
                     });
                 </script>";
+            } else {
+                // 2. Cek riwayat ulasan ganda
+                $q_cek_review = mysqli_query($koneksi, "
+                    SELECT id FROM review_buku 
+                    WHERE siswa_id = '$siswa_id_input' AND buku_id = '$buku_id_input'
+                ");
+
+                if (mysqli_num_rows($q_cek_review) > 0) {
+                    echo "<script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            Swal.fire('Sudah Diulas!', 'Kamu sudah pernah memberikan ulasan untuk buku ini.', 'info');
+                        });
+                    </script>";
+                } else {
+                    // 3. Escape string baru dilakukan SAAT DIPROSES KE DATABASE
+                    $ulasan_db = mysqli_real_escape_string($koneksi, $ulasan_murni);
+
+                    $sql_ins_review = "INSERT INTO review_buku (siswa_id, buku_id, rating, ulasan) 
+                                       VALUES ('$siswa_id_input', '$buku_id_input', '$rating_input', '$ulasan_db')";
+                    if (mysqli_query($koneksi, $sql_ins_review)) {
+                        echo "<script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                Swal.fire('Berhasil!', 'Ulasan kamu terbukti berbobot! +20 Poin didapatkan.', 'success')
+                                .then(() => { window.location.href='siswa_dashboard.php'; });
+                            });
+                        </script>";
+                    }
+                }
             }
+        } else {
+            // Menampilkan alasan penolakan dari AI
+            $alasan = $hasil_ai['alasan'] ?? 'Ulasan kurang berbobot atau tidak relevan dengan buku.';
+            echo "<script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    Swal.fire('Ulasan Ditolak AI!', '" . addslashes($alasan) . "', 'error');
+                });
+            </script>";
         }
     }
 }
