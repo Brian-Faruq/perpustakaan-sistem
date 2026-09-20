@@ -597,7 +597,7 @@ if ($q_leaderboard) {
                 <p class="text-xs text-slate-400 mb-4">Dapatkan +20 Poin untuk setiap ulasan buku yang sudah kamu kembalikan!</p>
 
                 <?php if (mysqli_num_rows($q_buku_review) > 0): ?>
-                    <form action="" method="POST" class="space-y-4">
+                    <form id="form-review-buku" action="" method="POST" class="space-y-4">
                         <input type="hidden" name="siswa_id" value="<?= $siswa_id; ?>">
                         
                         <div>
@@ -950,6 +950,28 @@ if ($q_leaderboard) {
                 }
             });
         }
+
+        // Tampilkan Loading Alert saat Form Review dikirim ke AI
+        document.getElementById('form-review-buku')?.addEventListener('submit', function(e) {
+            const ulasan = document.querySelector('textarea[name="ulasan"]').value.trim();
+            
+            // Hitung jumlah kata sederhana di JS
+            const wordCount = ulasan ? ulasan.split(/\s+/).filter(word => word.length > 0).length : 0;
+
+            // Jika kata sudah memenuhi batas minimal 15 kata, tampilkan Loading AI
+            if (wordCount >= 15) {
+                Swal.fire({
+                    title: 'Menganalisis Ulasan...',
+                    html: 'Mohon tunggu sebentar, AI sedang mengecek relevansi dan kualitas ulasan kamu. 🤖✨',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+            }
+        });
 
         // Jalankan interval setiap detik
         setInterval(updateNotifCountdown, 1000);

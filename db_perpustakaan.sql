@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Waktu pembuatan: 16 Sep 2026 pada 08.50
+-- Waktu pembuatan: 20 Sep 2026 pada 08.50
 -- Versi server: 10.4.32-MariaDB
 -- Versi PHP: 8.1.25
 
@@ -61,11 +61,11 @@ CREATE TABLE `buku` (
 --
 
 INSERT INTO `buku` (`id`, `judul`, `penulis`, `sinopsis`, `cover`, `status`) VALUES
-(35, 'Laskar Belitung', 'Andrea Hirata', 'Kisah perjuangan anak sekolah di Belitung', 'laskar.jpg', 'tersedia'),
-(36, 'Bumi Pertiwi', 'Tere Liye', 'Petualangan di dunia paralel', 'bumi.jpg', 'tersedia'),
-(37, 'Negeri 5 Menara', 'Ahmad Fuadi', 'Kisah kehidupan santri', 'menara.jpg', 'dipinjam'),
-(41, 'Pulang', 'Tere Liye', 'itulah intinya', 'pulang.jpg', 'tersedia'),
-(42, 'Pergi', 'Tere Liye', 'pp', 'pergi.jpg', 'tersedia');
+(46, 'Sisi Tergelap Surga', 'Brian Khrisna', 'Jakarta kerap menjadi pelabuhan bagi mereka yang datang membawa sekoper harapan. Mereka yang siap bertaruh dengan nasibnya sendiri-sendiri. Namun, kota ini selalu mampu melumat habis harapan dan menukarnya dengan keputusasaan.\n\nPemulung, pengamen, pramuria yang menjajakan tubuh agar anaknya bisa makan, pemimpin-pemimpin kecil yang culas, lelaki tua di balik kostum badut ayam, pencuri motor yang ingin membeli obat untuk ibunya, remaja yang melumuri tubuh dengan cat perak, hingga mereka yang bergelut di terminal setelah terpaksa merelakan impiannya habis digerus kejinya ibu kota.\n\nDi Jakarta, semua orang dipaksa bergelut dan bertempur demi bisa hidup dari hari ke hari. Dan di kampung inilah semua itu dimulai. Sebuah cerita tentang kehidupan orang-orang yang hidup di sisi tergelap surga kota bernama Jakarta...', 'sisitergelapsurga.jpg', 'tersedia'),
+(47, 'Pergi', 'Tere Liye', 'Sebuah kisah tentang menemukan tujuan, ke mana hendak pergi, melalui kenangan demi kenangan masa lalu, pertarungan demi pertarungan, untuk memeluk erat-erat kesedihan dan rasa sakit.\n\nSetelah mengetahui definisi \"pulang\" dan berdamai dengan masa lalunya, Bujang kini memimpin Keluarga Tong sebagai salah satu penguasa dunia shadow economy. Namun, ketenangan tak pernah bertahan lama. Ketika sebuah proyek teknologi berharga dicuri oleh jaringan El Pacho di Meksiko, Bujang terseret ke dalam konflik yang membawanya berhadapan dengan sosok misterius yang mengetahui nama aslinya, Agam.\n\nDi tengah persaingan antar-keluarga penguasa dunia bawah tanah dan ancaman besar dari Master Dragon, Bujang harus menelusuri kembali jejak masa lalu ayahnya, Samad. Dalam perjalanan yang penuh desingan peluru dan pertarungan di berbagai belahan dunia, Bujang tidak hanya berjuang mempertahankan Keluarga Tong, tetapi juga dipaksa menjawab pertanyaan terpenting dalam hidupnya: Ke mana ia akan pergi setelah tahu jalan untuk pulang?', 'pergi.jpg', 'tersedia'),
+(48, 'Bumi', 'Tere Liye', 'Namaku Raib, usiaku 15 tahun, kelas sepuluh. Aku anak remaja seperti kalian, dua orang tuaku lembut dan menyenangkan, aku punya dua ekor kucing yang lucu, teman-temanku baik, dan guru-guru di sekolahku hebat.\n\nTidak ada yang aneh dari diriku, sama persis seperti remaja SMA pada umumnya.\n\nKecuali satu hal. Mengenai diriku yang bisa menghilang.\n\nSssttt... Jangan beri tahu siapa-siapa, ya.', 'bumi.jpg', 'tersedia'),
+(49, 'Bandung Menjelang Pagi', 'Brian Khrisna', 'Menjelang pagi, Bandung berubah menjadi kota yang tak lagi sama. Malam terasa sangat panjang dan lebih mencekam dari kelam. Para bandit, pemadat, tukang judi, bocah geng motor, begundal grafiti, semuanya berkeliaran bak tikus-tikus ketika air got meluap.   \n\nDipha adalah pemuda serabutan yang sudah mengenal betul sisi kelam kota ini. Apa pun ia lakukan untuk bertahan hidup. Kemampuannya untuk mengerjakan apa saja membawanya bertemu dengan Vinda, seorang gadis misterius yang ngotot minta dicarikan tempat tinggal dengan segala syarat yang tak masuk akal.\n\nJalan Asia Afrika, Braga, Dago, Kalipah Apo, Astana Anyar, Banceuy, Jalan ABC, dan seluruh jalan-jalan tikus di Kota Bandung menjadi saksi tumbuhnya perasaan di antara keduanya. Namun, sayangnya mereka berdua kerap lupa, bahwa sejatinya, oleh-oleh paling khas dari Kota Bandung adalah: patah hati.', 'bandungmenjelangpagi.jpg', 'tersedia'),
+(50, 'Matahari', 'Tere Liye', 'Namaku Ali, 15 tahun, kelas X. Jika saja orangtuaku mengizinkan, seharusnya aku sudah duduk di tingkat akhir fakultas fisika program doktor di universitas terbaik. Aku tidak menyukai sekolah, atau lebih tepatnya, aku bosan dengan pelajaran yang itu-itu saja.\n\nTapi sejak Raib dan Seli membawaku ke petualangan yang luar biasa, aku tahu, ada banyak hal misterius di dunia ini yang belum terpecahkan. Dan aku adalah tipe orang yang tidak akan berhenti sebelum menemukan jawabannya.\n\nKali ini, aku yang membawa mereka menjelajahi dunia paralel. Menuju Klan Matahari.\n\nSssttt... Jangan beri tahu siapa-siapa, ya.', 'matahari.jpg', 'tersedia');
 
 -- --------------------------------------------------------
 
@@ -87,8 +87,7 @@ CREATE TABLE `notifikasi` (
 
 INSERT INTO `notifikasi` (`id`, `siswa_id`, `pesan`, `is_read`, `created_at`) VALUES
 (1, 8, 'Waktu peminjaman buku \"Hujan\" habis, kembalikan sekarang!', 0, '2026-08-24 07:40:06'),
-(2, 8, 'Waktu peminjaman buku \"Hujan\" habis, kembalikan sekarang!', 0, '2026-08-24 07:42:53'),
-(6, 11, 'Waktu peminjaman buku \"Negeri 5 Menara\" habis, kembalikan sekarang!', 0, '2026-09-16 03:53:21');
+(2, 8, 'Waktu peminjaman buku \"Hujan\" habis, kembalikan sekarang!', 0, '2026-08-24 07:42:53');
 
 -- --------------------------------------------------------
 
@@ -107,19 +106,6 @@ CREATE TABLE `peminjaman` (
   `status_transaksi` enum('berjalan','selesai') DEFAULT 'berjalan'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data untuk tabel `peminjaman`
---
-
-INSERT INTO `peminjaman` (`id`, `siswa_id`, `buku_id`, `tanggal_pinjam`, `durasi_hari`, `tanggal_jatuh_tempo`, `tanggal_kembali`, `status_transaksi`) VALUES
-(46, 9, 37, '2026-09-10', 5, '2026-09-15', '2026-09-13', 'selesai'),
-(47, 15, 42, '2026-09-10', 3, '2026-09-13', '2026-09-13', 'selesai'),
-(48, 15, 37, '2026-09-14', 6, '2026-09-20', '2026-09-14', 'selesai'),
-(49, 7, 35, '2026-09-14', 2, '2026-09-16', '2026-09-15', 'selesai'),
-(50, 6, 42, '2026-09-14', 2, '2026-09-16', '2026-09-15', 'selesai'),
-(51, 9, 41, '2026-09-14', 7, '2026-09-21', '2026-09-15', 'selesai'),
-(52, 11, 37, '2026-09-16', 1, '2026-09-17', NULL, 'berjalan');
-
 -- --------------------------------------------------------
 
 --
@@ -134,15 +120,6 @@ CREATE TABLE `review_buku` (
   `ulasan` text DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data untuk tabel `review_buku`
---
-
-INSERT INTO `review_buku` (`id`, `siswa_id`, `buku_id`, `rating`, `ulasan`, `created_at`) VALUES
-(1, 15, 42, 5, 'hemmmh, kelas sih bukunya asik jugak', '2026-09-13 13:58:17'),
-(2, 9, 37, 5, 'asikkkk, kelas banget bukunya king, kayak gitulah intinya king, ngetikan lu king apa yang gw maksud?, yah jadi gitulah, ada orang masuk pesantren terus jadi gila, habis itu mati, terus ibunya nangis, terus ikut mati jugak,, ya begitulah', '2026-09-13 14:00:10'),
-(3, 15, 37, 3, 'keren king, kelas king, keren king kelas king, keren king, kelas king, keren king kelas king', '2026-09-14 14:03:12');
 
 -- --------------------------------------------------------
 
@@ -233,7 +210,7 @@ ALTER TABLE `admin`
 -- AUTO_INCREMENT untuk tabel `buku`
 --
 ALTER TABLE `buku`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=44;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT untuk tabel `notifikasi`
@@ -245,13 +222,13 @@ ALTER TABLE `notifikasi`
 -- AUTO_INCREMENT untuk tabel `peminjaman`
 --
 ALTER TABLE `peminjaman`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=53;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT untuk tabel `review_buku`
 --
 ALTER TABLE `review_buku`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT untuk tabel `siswa`
