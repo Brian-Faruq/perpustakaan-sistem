@@ -13,30 +13,44 @@ function loadEnv($filePath = __DIR__ . '/.env') {
 // Panggil pembaca .env
 loadEnv();
 
-function validasiUlasanAI($judul_buku, $teks_review) {
+function validasiUlasanAI($judul_buku, $penulis_buku, $sinopsis_buku, $teks_review) {
     $apiKey = $_ENV['TAMANDATA_API_KEY'] ?? '9r_live_YEGu31DqzVFMUnHX7yLae9GfYoJ9Ixoj';
     
     $url = "https://ai.tamandata.com/v1/chat/completions";
 
+    // Potong sinopsis jika terlalu panjang
+    $sinopsis_singkat = !empty($sinopsis_buku) ? mb_strimwidth($sinopsis_buku, 0, 800, "...") : "Tidak ada sinopsis.";
+
+    // Prompt dengan pemeriksaan kesesuaian judul & konteks buku
     $prompt = "Kamu adalah validator ulasan buku perpustakaan sekolah.
-Tugas: Menilai apakah ulasan siswa LAYAK (VALID) atau TIDAK (INVALID).
+Tugas utama: Menilai apakah ulasan yang ditulis siswa BENAR-BENAR COCOK dan RELEVAN dengan buku yang dipilih.
 
-Kriteria VALID:
-1. Relevan/nyambung dengan buku: '{$judul_buku}'.
-2. Bukan spam atau ketikan asal (contoh: 'asdasd', 'bagusss', '12345').
-3. Memiliki makna sederhana (kesan, bagian favorit, atau pesan moral).
+---
+BUKU YANG DIPILIH SISWA:
+Judul Buku : {$judul_buku}
+Penulis    : {$penulis_buku}
+Sinopsis   : \"{$sinopsis_singkat}\"
+---
 
-Catatan: Tolong toleran dengan bahasa santai siswa. Ulasan yang menceritakan alur/kesan buku dianggap VALID.
+TEKS ULASAN SISWA:
+\"{$teks_review}\"
 
-Teks Ulasan Siswa: \"{$teks_review}\"
+ATURAN VALIDASI:
+1. Kategori VALID:
+   - Ulasan cocok atau relevan dengan judul '{$judul_buku}', penulis, atau sinopsisnya.
+   - Ulasan berisi pendapat umum/kesan membaca yang wajar sesuai tema buku tersebut.
 
-Wajib jawab HANYA dalam format JSON valid:
+2. Kategori INVALID:
+   - SALAH BUKU: Siswa memilih buku '{$judul_buku}', TETAPI isi ulasannya secara jelas membahas BUKU LAIN/CERITA LAIN (contoh: Pilih 'Bumi' tapi bahas Harry Potter, Laskar Pelangi, Naruto, atau judul lain yang tidak ada hubungannya).
+   - SPAM / ASAL KETIK: Berupa ketikan asal (contoh: 'asdasd', '12345', 'bagusss bangetttt bgt').
+   - BAHASA TIDAK DESAKRAL/KASAR: Menggunakan kata-kata kotor atau promosi.
+
+Wajib jawab HANYA dalam format JSON valid (tanpa markdown / backtick):
 {
   \"status\": \"VALID\",
-  \"alasan\": \"Alasan singkat\"
+  \"alasan\": \"Alasan singkat penentuan valid/invalid\"
 }";
 
-    // 3. Payload sesuai spesifikasi Tamandata / OpenAI Format
     $payload = [
         "model" => "tamandata",
         "messages" => [
@@ -73,7 +87,6 @@ Wajib jawab HANYA dalam format JSON valid:
         return ['status' => 'INVALID', 'alasan' => 'API Error: ' . ($result['error']['message'] ?? 'Unknown Error')];
     }
 
-    // 4. Parsing response dari Tamandata
     $rawText = $result['choices'][0]['message']['content'] ?? '';
     
     if (preg_match('/\{.*\}/s', $rawText, $matches)) {
@@ -85,6 +98,6 @@ Wajib jawab HANYA dalam format JSON valid:
 
     return [
         'status' => 'INVALID', 
-        'alasan' => 'Respons AI tidak valid. Teks mentah: ' . substr($rawText, 0, 80)
+        'alasan' => 'Respons AI tidak valid.'
     ];
 }

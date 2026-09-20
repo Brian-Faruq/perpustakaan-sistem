@@ -25,13 +25,16 @@ if (isset($_POST['simpan_review'])) {
             });
         </script>";
     } else {
-        // Ambil Judul Buku untuk dikirim ke AI
-        $q_buku = mysqli_query($koneksi, "SELECT judul FROM buku WHERE id = '$buku_id_input'");
+        // Ambil Detail Buku (Judul, Penulis, Sinopsis) dari Database untuk dikirim ke AI
+        $q_buku = mysqli_query($koneksi, "SELECT judul, penulis, sinopsis FROM buku WHERE id = '$buku_id_input'");
         $d_buku = mysqli_fetch_assoc($q_buku);
-        $judul_buku = $d_buku['judul'] ?? 'Buku Perpustakaan';
+        
+        $judul_buku    = $d_buku['judul'] ?? 'Buku Perpustakaan';
+        $penulis_buku  = $d_buku['penulis'] ?? 'Penulis Tidak Diketahui';
+        $sinopsis_buku = $d_buku['sinopsis'] ?? '';
 
-        // PERBAIKAN: Mengirim $ulasan_murni ke fungsi AI
-        $hasil_ai = validasiUlasanAI($judul_buku, $ulasan_murni);
+        // Mengirimkan Detail Buku dan Ulasan Siswa ke AI
+        $hasil_ai = validasiUlasanAI($judul_buku, $penulis_buku, $sinopsis_buku, $ulasan_murni);
 
         if (isset($hasil_ai['status']) && $hasil_ai['status'] === 'VALID') {
             // 1. Verifikasi status peminjaman
