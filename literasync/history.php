@@ -33,7 +33,7 @@ $query_history = mysqli_query($conn, "SELECT * FROM books WHERE user_id='$user_i
 <body>
 
 <div class="container">
-    <h2>📚 Jurnal Membaca Kamu</h2>
+    <h2>📚 Jurnal Membaca Kamu Yang Pernah Di Baca</h2>
     <a href="dashboard.php">← Kembali ke Dashboard</a>
     <hr>
 
