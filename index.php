@@ -135,7 +135,7 @@ if ($q_s) $count_siswa = mysqli_fetch_assoc($q_s)['total'] ?? 0;
                 </div>
                 <div>
                     <h1 class="font-extrabold text-sm tracking-wide text-white">SEKOLAH IMPIAN</h1>
-                    <p class="text-[10px] text-slate-400 tracking-wider uppercase">Portal Perpustakaan Digital</p>
+                    <p class="text-[10px] text-slate-400 tracking-wider uppercase">Perpustakaan Digital</p>
                 </div>
             </div>
 
