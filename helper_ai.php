@@ -14,7 +14,7 @@ function loadEnv($filePath = __DIR__ . '/.env') {
 loadEnv();
 
 function validasiUlasanAI($judul_buku, $penulis_buku, $sinopsis_buku, $teks_review) {
-    $apiKey = $_ENV['TAMANDATA_API_KEY'] ?? '9r_live_YEGu31DqzVFMUnHX7yLae9GfYoJ9Ixoj';
+    $apiKey = $_ENV['TAMANDATA_API_KEY'] ?? '9r_live_V3qcOhLiAF6RPIeOSGC0_uWvVZB7NxVm';
     
     $url = "https://ai.tamandata.com/v1/chat/completions";
 

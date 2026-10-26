@@ -340,10 +340,14 @@ if ($q_leaderboard) {
 
             <div id="katalog-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 <?php if (mysqli_num_rows($q_buku) > 0): ?>
-                    <?php while ($b = mysqli_fetch_assoc($q_buku)): ?>
+                    <?php while ($b = mysqli_fetch_assoc($q_buku)): 
+                        // Bersihkan teks sinopsis dan judul tepat di dalam perulangan buku ini
+                        $sinopsis_clean = !empty($b['sinopsis']) ? str_replace(array("\r", "\n"), ' ', $b['sinopsis']) : 'Sinopsis tidak tersedia.';
+                        $judul_clean    = !empty($b['judul']) ? str_replace(array("\r", "\n"), ' ', $b['judul']) : '';
+                    ?>
                         <div class="buku-item bg-white rounded-2xl border border-slate-200/80 p-3 flex flex-col justify-between shadow-sm hover:shadow-md transition" 
-                             data-judul="<?= htmlspecialchars(strtolower($b['judul'])); ?>" 
-                             data-penulis="<?= htmlspecialchars(strtolower($b['penulis'])); ?>">
+                            data-judul="<?= htmlspecialchars(strtolower($b['judul'])); ?>" 
+                            data-penulis="<?= htmlspecialchars(strtolower($b['penulis'])); ?>">
                             <div>
                                 <div class="w-full h-44 rounded-xl bg-slate-100 overflow-hidden mb-3 relative">
                                     <img src="uploads/<?= !empty($b['cover']) ? htmlspecialchars($b['cover']) : 'default_cover.jpg'; ?>" alt="<?= htmlspecialchars($b['judul']); ?>" class="w-full h-full object-cover">
@@ -370,17 +374,12 @@ if ($q_leaderboard) {
                                 </span>
                             </div>
 
-                            <button onclick="openSinopsisModal('<?= htmlspecialchars(addslashes($b['judul'])); ?>', '<?= htmlspecialchars(addslashes($b['sinopsis'])); ?>')" class="mt-3 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1.5 rounded-xl text-[11px] transition">
+                            <button type="button" onclick="openSinopsisModal('<?= htmlspecialchars(addslashes($judul_clean), ENT_QUOTES, 'UTF-8'); ?>', '<?= htmlspecialchars(addslashes($sinopsis_clean), ENT_QUOTES, 'UTF-8'); ?>')" class="mt-3 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-1.5 rounded-xl text-[11px] transition">
                                 📖 Baca Sinopsis
                             </button>
                         </div>
                     <?php endwhile; ?>
                 <?php endif; ?>
-
-                <!-- Tampilan jika hasil pencarian kosong -->
-                <div id="no-search-result" class="hidden col-span-full py-12 text-center text-slate-400 text-xs sm:text-sm">
-                    Buku tidak ditemukan.
-                </div>
             </div>
         </section>
 
@@ -790,8 +789,11 @@ if ($q_leaderboard) {
         }
 
         function openSinopsisModal(judul, sinopsis) {
-            document.getElementById('sinopsis-judul').innerText = judul;
-            document.getElementById('sinopsis-isi').innerText = sinopsis;
+            // Pastikan judul dan sinopsis ditampilkan dengan rapi
+            document.getElementById('sinopsis-judul').innerText = judul || 'Judul Buku';
+            document.getElementById('sinopsis-isi').innerText = sinopsis || 'Sinopsis tidak tersedia.';
+            
+            // Tampilkan modal
             toggleModal('modal-sinopsis');
         }
 
